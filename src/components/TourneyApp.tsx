@@ -30,10 +30,14 @@ function TeamDropdown({ which, teams, selected, other, onSelect }: {
   const filtered = teams
     .filter(t => !other || t.id !== other.id)
     .filter(t =>
+      query.trim() === '' ||
       t.name.toLowerCase().includes(query.toLowerCase()) ||
-      t.conf.toLowerCase().includes(query.toLowerCase())
+      t.shortName.toLowerCase().includes(query.toLowerCase()) ||
+      t.conf.toLowerCase().includes(query.toLowerCase()) ||
+      String(t.seed) === query.trim()
     )
-    .slice(0, 12);
+    .sort((a, b) => a.seed - b.seed || a.name.localeCompare(b.name))
+    .slice(0, 20);
 
   // Close on outside click
   useEffect(() => {
@@ -75,8 +79,13 @@ function TeamDropdown({ which, teams, selected, other, onSelect }: {
         onChange={e => { setQuery(e.target.value); setOpen(true); }}
         onFocus={() => setOpen(true)}
       />
-      {open && filtered.length > 0 && (
-        <div className="dropdown" ref={dropRef}>
+      {open && (
+        <div className="dropdown" ref={dropRef} style={{ maxHeight: 320 }}>
+          {filtered.length === 0 && (
+            <div style={{ padding: '12px 14px', fontSize: 13, color: 'var(--text3)' }}>
+              No teams found for &quot;{query}&quot;
+            </div>
+          )}
           {filtered.map(t => (
             <div
               key={t.id}
