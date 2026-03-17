@@ -13,18 +13,18 @@ export interface Team {
   record: string;
   ats: string;
   // Efficiency (KenPom-style)
-  offEff: number;   // Adjusted offensive efficiency (pts per 100 poss)
-  defEff: number;   // Adjusted defensive efficiency (pts allowed per 100 poss)
-  tempo: number;    // Adjusted tempo (possessions per 40 min)
-  sos: number;      // Strength of schedule rank
+  offEff: number;      // Adjusted offensive efficiency (pts per 100 poss)
+  defEff: number;      // Adjusted defensive efficiency (pts allowed per 100 poss)
+  tempo: number;       // Adjusted tempo (possessions per 40 min)
+  sos: number;         // Strength of schedule rank (lower = harder)
   // Scoring
   ppg: number;
   oppg: number;
   // Four Factors
-  efgPct: number;   // Effective FG%
-  tovPct: number;   // Turnover %
-  orbPct: number;   // Offensive rebound %
-  ftr: number;      // Free throw rate
+  efgPct: number;      // Effective FG%
+  tovPct: number;      // Turnover %
+  orbPct: number;      // Offensive rebound %
+  ftr: number;         // Free throw rate
   // Shooting
   threePct: number;
   ftPct: number;
@@ -44,7 +44,7 @@ export interface BettingLine {
   total: number;       // over/under
   source: string;      // sportsbook name
   updated: string;     // human-readable timestamp
-  // Optional line movement
+  // Line movement (optional — used for sharp money signals)
   openSpread?: number;
   openTotal?: number;
 }
@@ -64,14 +64,19 @@ export interface MatchupAnalysis {
   spreadEdge: number;
   totalEdge: number;
   coverProb: number;
+  overProb: number;        // NEW: probability of going over the total
   // Output
   confidence: number;
   pickCover: string;
   ouLean: string;
+  // Short reasons (main AI panel)
   reasons: string[];
   risks: string[];
+  // Deep analysis panels (Phase 4)
+  spreadReasons: string[];   // NEW: detailed spread breakdown
+  totalsReasons: string[];   // NEW: detailed totals breakdown
   volatility: 'HIGH' | 'MODERATE' | 'LOW';
-  // Optional AI narrative
+  // Optional AI narrative (OpenAI)
   aiNarrative?: string;
 }
 
