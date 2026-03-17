@@ -1,9 +1,6 @@
 'use client';
 
 // src/components/TourneyApp.tsx
-// Full React port of the working single-file HTML app.
-// Data fetching goes through /api/* routes which handle
-// live vs mock switching via DATA_MODE env var.
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import type { Team, BettingLine, MatchupAnalysis, HistoryEntry } from '@/types';
@@ -23,9 +20,9 @@ function TeamDropdown({ which, teams, selected, other, onSelect }: {
   onSelect: (t: Team) => void;
 }) {
   const [query, setQuery] = useState('');
-  const [open, setOpen] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const dropRef  = useRef<HTMLDivElement>(null);
+  const [open, setOpen]   = useState(false);
+  const inputRef          = useRef<HTMLInputElement>(null);
+  const dropRef           = useRef<HTMLDivElement>(null);
 
   const filtered = teams
     .filter(t => !other || t.id !== other.id)
@@ -39,7 +36,6 @@ function TeamDropdown({ which, teams, selected, other, onSelect }: {
     .sort((a, b) => a.seed - b.seed || a.name.localeCompare(b.name))
     .slice(0, 20);
 
-  // Close on outside click
   useEffect(() => {
     function handle(e: MouseEvent) {
       if (
@@ -134,22 +130,22 @@ function ConfidenceRing({ value }: { value: number }) {
 // ─── Stats Tab ────────────────────────────────────────────────
 function StatsTab({ tA, tB }: { tA: Team; tB: Team }) {
   const rows: [string, string | number, string | number, 'higher' | 'lower' | null][] = [
-    ['Record',          tA.record,       tB.record,       null],
-    ['ATS Record',      tA.ats,          tB.ats,          null],
-    ['PPG',             tA.ppg,          tB.ppg,          'higher'],
-    ['Opp PPG',         tA.oppg,         tB.oppg,         'lower'],
-    ['Adj. Off Eff',    tA.offEff,       tB.offEff,       'higher'],
-    ['Adj. Def Eff',    tA.defEff,       tB.defEff,       'lower'],
-    ['Tempo (poss/40)', tA.tempo,        tB.tempo,        null],
-    ['SOS Rank',        tA.sos,          tB.sos,          'higher'],
-    ['eFG%',            tA.efgPct + '%', tB.efgPct + '%', 'higher'],
-    ['TOV%',            tA.tovPct + '%', tB.tovPct + '%', 'lower'],
-    ['ORB%',            tA.orbPct + '%', tB.orbPct + '%', 'higher'],
-    ['FT Rate',         tA.ftr,          tB.ftr,          'higher'],
-    ['3PT%',            tA.threePct+'%', tB.threePct+'%', 'higher'],
-    ['FT%',             tA.ftPct + '%',  tB.ftPct + '%',  'higher'],
-    ['Last 10',         tA.last10,       tB.last10,       null],
-    ['Neutral Rec.',    tA.neutralRec,   tB.neutralRec,   null],
+    ['Record',          tA.record,        tB.record,        null],
+    ['ATS Record',      tA.ats,           tB.ats,           null],
+    ['PPG',             tA.ppg,           tB.ppg,           'higher'],
+    ['Opp PPG',         tA.oppg,          tB.oppg,          'lower'],
+    ['Adj. Off Eff',    tA.offEff,        tB.offEff,        'higher'],
+    ['Adj. Def Eff',    tA.defEff,        tB.defEff,        'lower'],
+    ['Tempo (poss/40)', tA.tempo,         tB.tempo,         null],
+    ['SOS Rank',        tA.sos,           tB.sos,           'higher'],
+    ['eFG%',            tA.efgPct + '%',  tB.efgPct + '%',  'higher'],
+    ['TOV%',            tA.tovPct + '%',  tB.tovPct + '%',  'lower'],
+    ['ORB%',            tA.orbPct + '%',  tB.orbPct + '%',  'higher'],
+    ['FT Rate',         tA.ftr,           tB.ftr,           'higher'],
+    ['3PT%',            tA.threePct+'%',  tB.threePct+'%',  'higher'],
+    ['FT%',             tA.ftPct + '%',   tB.ftPct + '%',   'higher'],
+    ['Last 10',         tA.last10,        tB.last10,        null],
+    ['Neutral Rec.',    tA.neutralRec,    tB.neutralRec,    null],
   ];
 
   function cls(va: string | number, vb: string | number, dir: 'higher' | 'lower' | null) {
@@ -193,8 +189,8 @@ function StatsTab({ tA, tB }: { tA: Team; tB: Team }) {
 // ─── AI Analysis Tab ──────────────────────────────────────────
 function AITab({ a }: { a: MatchupAnalysis }) {
   const { tA, tB, projA, projB, coverProb, confidence, pickCover, ouLean,
-          reasons, risks, spreadEdge, totalEdge, poss, lines, volatility } = a;
-  const probPct = Math.round(coverProb * 100);
+          reasons, risks, spreadEdge, totalEdge, poss, volatility } = a;
+  const probPct  = Math.round(coverProb * 100);
   const volColors = { HIGH: 'var(--red)', MODERATE: 'var(--amber)', LOW: 'var(--green)' };
   const volIcons  = { HIGH: '🔥', MODERATE: '⚖️', LOW: '🧊' };
 
@@ -216,8 +212,8 @@ function AITab({ a }: { a: MatchupAnalysis }) {
       {/* Pick cards */}
       <div className="pick-cards">
         {[
-          { label:'Pick to Cover', value: pickCover,   color:'var(--green)' },
-          { label:'O/U Lean',      value: ouLean,      color:'var(--amber)' },
+          { label:'Pick to Cover', value: pickCover,  color:'var(--green)' },
+          { label:'O/U Lean',      value: ouLean,     color:'var(--amber)' },
           { label:'Model Edge',    value: `${spreadEdge > 0 ? '+' : ''}${spreadEdge.toFixed(1)} pts`,
             color: Math.abs(spreadEdge) > 2 ? 'var(--green)' : 'var(--text2)' },
           { label:'Total Edge',    value: `${totalEdge > 0 ? '+' : ''}${totalEdge.toFixed(1)} pts`,
@@ -247,7 +243,7 @@ function AITab({ a }: { a: MatchupAnalysis }) {
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:12, marginBottom:16 }}>
         {[
           { label:'Proj. Total',  value: (projA + projB).toFixed(1), color:'var(--amber)' },
-          { label:'Proj. Poss.',  value: poss.toFixed(0),            color:'var(--text)' },
+          { label:'Proj. Poss.',  value: poss.toFixed(0),            color:'var(--text)'  },
           { label:'Cover Prob.',  value: `${probPct}%`,              color:'var(--green)' },
         ].map(({ label, value, color }) => (
           <div key={label} style={{ textAlign:'center', background:'var(--bg3)', borderRadius:'var(--radius)', padding:12 }}>
@@ -305,13 +301,15 @@ function AITab({ a }: { a: MatchupAnalysis }) {
         <div style={{ fontSize:11, color:'var(--text3)', marginBottom:4 }}>VOLATILITY PROFILE</div>
         <div style={{ fontSize:13, color: volColors[volatility] }}>
           {volIcons[volatility]} {volatility} VARIANCE —{' '}
-          {volatility === 'HIGH'     ? 'Both teams shoot heavy threes at high pace. Expect wide score swings.' :
-           volatility === 'LOW'      ? 'Methodical pace, low turnovers. Game likely decided by execution. Spread lean reliable.' :
-                                       'Balanced profile. Model confidence in moderate range. Normal betting risk.'}
+          {volatility === 'HIGH'
+            ? 'Both teams shoot heavy threes at high pace. Expect wide score swings.'
+            : volatility === 'LOW'
+            ? 'Methodical pace, low turnovers. Game likely decided by execution. Spread lean reliable.'
+            : 'Balanced profile. Model confidence in moderate range. Normal betting risk.'}
         </div>
       </div>
 
-      {/* AI narrative (if available) */}
+      {/* AI narrative */}
       {a.aiNarrative && (
         <div style={{ marginTop:16, padding:'14px 16px', background:'rgba(79,126,255,0.08)',
           border:'1px solid rgba(79,126,255,0.2)', borderRadius:'var(--radius)' }}>
@@ -331,14 +329,14 @@ function AITab({ a }: { a: MatchupAnalysis }) {
 function EdgeTab({ a }: { a: MatchupAnalysis }) {
   const { tA, tB, spreadEdge, totalEdge } = a;
   const edges = [
-    { cat:'Offensive Efficiency',  aVal: tA.offEff.toFixed(1),    bVal: tB.offEff.toFixed(1),    edge: tA.offEff - tB.offEff,      flip: false },
-    { cat:'Defensive Efficiency',  aVal: tA.defEff.toFixed(1),    bVal: tB.defEff.toFixed(1),    edge: tB.defEff - tA.defEff,      flip: true  },
-    { cat:'Rebounding Edge',       aVal: tA.orbPct + '%',         bVal: tB.orbPct + '%',         edge: tA.orbPct - tB.orbPct,      flip: false },
-    { cat:'Turnover Discipline',   aVal: tA.tovPct + '%',         bVal: tB.tovPct + '%',         edge: tB.tovPct - tA.tovPct,      flip: false },
-    { cat:'3PT Shooting',          aVal: tA.threePct + '%',       bVal: tB.threePct + '%',       edge: tA.threePct - tB.threePct,  flip: false },
-    { cat:'Free Throw %',          aVal: tA.ftPct + '%',          bVal: tB.ftPct + '%',          edge: tA.ftPct - tB.ftPct,        flip: false },
-    { cat:'Strength of Schedule',  aVal: tA.sos.toFixed(1),       bVal: tB.sos.toFixed(1),       edge: tA.sos - tB.sos,            flip: false },
-    { cat:'Pace Differential',     aVal: tA.tempo.toFixed(1),     bVal: tB.tempo.toFixed(1),     edge: Math.abs(tA.tempo-tB.tempo),flip: false },
+    { cat:'Offensive Efficiency',  aVal: tA.offEff.toFixed(1),   bVal: tB.offEff.toFixed(1),   edge: tA.offEff - tB.offEff,       flip: false },
+    { cat:'Defensive Efficiency',  aVal: tA.defEff.toFixed(1),   bVal: tB.defEff.toFixed(1),   edge: tB.defEff - tA.defEff,       flip: true  },
+    { cat:'Rebounding Edge',       aVal: tA.orbPct + '%',        bVal: tB.orbPct + '%',        edge: tA.orbPct - tB.orbPct,       flip: false },
+    { cat:'Turnover Discipline',   aVal: tA.tovPct + '%',        bVal: tB.tovPct + '%',        edge: tB.tovPct - tA.tovPct,       flip: false },
+    { cat:'3PT Shooting',          aVal: tA.threePct + '%',      bVal: tB.threePct + '%',      edge: tA.threePct - tB.threePct,   flip: false },
+    { cat:'Free Throw %',          aVal: tA.ftPct + '%',         bVal: tB.ftPct + '%',         edge: tA.ftPct - tB.ftPct,         flip: false },
+    { cat:'Strength of Schedule',  aVal: tA.sos.toFixed(1),      bVal: tB.sos.toFixed(1),      edge: tA.sos - tB.sos,             flip: false },
+    { cat:'Pace Differential',     aVal: tA.tempo.toFixed(1),    bVal: tB.tempo.toFixed(1),    edge: Math.abs(tA.tempo-tB.tempo), flip: false },
   ];
 
   return (
@@ -351,8 +349,8 @@ function EdgeTab({ a }: { a: MatchupAnalysis }) {
           </thead>
           <tbody>
             {edges.map(({ cat, aVal, bVal, edge, flip }) => {
-              const eR    = Math.round(Math.abs(edge) * 10) / 10;
-              const favA  = flip ? edge < 0 : edge > 0;
+              const eR   = Math.round(Math.abs(edge) * 10) / 10;
+              const favA = flip ? edge < 0 : edge > 0;
               return (
                 <tr key={cat}>
                   <td>{cat}</td>
@@ -394,26 +392,24 @@ function EdgeTab({ a }: { a: MatchupAnalysis }) {
 
 // ─── Settings Page ────────────────────────────────────────────
 function SettingsPage() {
-  const [weights, setWeights] = useState({ form:35, matchup:30, sos:20, recent:15 });
-  const [toggles, setToggles] = useState({ narrative:true, cache:true, kenpom:true, espn:true, draftkings:true, public:false, injuries:true });
+  const [weights, setWeights]     = useState({ form:35, matchup:30, sos:20, recent:15 });
+  const [toggles, setToggles]     = useState({ narrative:true, cache:true, kenpom:true, espn:true, draftkings:true, public:false, injuries:true });
   const [oddsFormat, setOddsFormat] = useState('american');
   const [kenpomEmail, setKenpomEmail] = useState('');
-  const [oddsKey, setOddsKey] = useState('');
+  const [oddsKey, setOddsKey]     = useState('');
 
   return (
     <div className="settings-grid">
       <div className="setting-group">
         <h3 style={{ fontSize:14, fontWeight:600, marginBottom:16 }}>API Configuration</h3>
         {[
-          { name:'KenPom Email',   key:'kenpom_email',  status:'demo', val: kenpomEmail, setter: setKenpomEmail, placeholder:'your@email.com' },
-          { name:'The Odds API Key', key:'odds_key',    status:'demo', val: oddsKey,     setter: setOddsKey,     placeholder:'Paste API key...' },
-        ].map(({ name, status, val, setter, placeholder }) => (
+          { name:'KenPom Email',     val: kenpomEmail, setter: setKenpomEmail, placeholder:'your@email.com' },
+          { name:'The Odds API Key', val: oddsKey,     setter: setOddsKey,     placeholder:'Paste API key...' },
+        ].map(({ name, val, setter, placeholder }) => (
           <div className="setting-row" key={name} style={{ flexDirection:'column', alignItems:'flex-start', gap:6 }}>
             <div style={{ display:'flex', justifyContent:'space-between', width:'100%' }}>
               <div style={{ fontSize:14, color:'var(--text2)' }}>{name}</div>
-              <span style={{ fontSize:11, color:'var(--amber)' }}>
-                <span className="status-dot warn" />{status}
-              </span>
+              <span style={{ fontSize:11, color:'var(--amber)' }}><span className="status-dot warn" />demo</span>
             </div>
             <input className="api-input" placeholder={placeholder} value={val}
               onChange={e => setter(e.target.value)} style={{ width:'100%' }} />
@@ -451,10 +447,10 @@ function SettingsPage() {
 
       <div className="setting-group">
         <h3 style={{ fontSize:14, fontWeight:600, marginBottom:16 }}>Display Options</h3>
-        {[
-          { label:'AI Narrative',  sub:'Show LLM explanation', key:'narrative' as const },
-          { label:'API Cache',     sub:'Cache responses 5 min', key:'cache' as const },
-        ].map(({ label, sub, key }) => (
+        {([
+          { label:'AI Narrative', sub:'Show LLM explanation',  key:'narrative' as const },
+          { label:'API Cache',    sub:'Cache responses 5 min', key:'cache' as const },
+        ]).map(({ label, sub, key }) => (
           <div className="setting-row" key={key}>
             <div>
               <div style={{ fontSize:14, color:'var(--text2)' }}>{label}</div>
@@ -528,7 +524,7 @@ function HistoryPage({ history }: { history: HistoryEntry[] }) {
 // ─── Best Edges Page ──────────────────────────────────────────
 function EdgePage({ teams, onLoadMatchup }: { teams: Team[]; onLoadMatchup: (a: Team, b: Team) => void }) {
   const edges = teams.slice(0, 8).map((t, i) => {
-    const opp = teams[i + 1] ?? teams[0];
+    const opp  = teams[i + 1] ?? teams[0];
     const line = MOCK_BETTING_LINES[[t.id, opp.id].sort().join('-')] ?? {
       spread: -3.5, spreadFav: t.id, ml_a: -155, ml_b: 128,
       total: 145.5, source: 'Est.', updated: 'demo',
@@ -576,97 +572,172 @@ function EdgePage({ teams, onLoadMatchup }: { teams: Team[]; onLoadMatchup: (a: 
 
 // ─── Main App ─────────────────────────────────────────────────
 export default function TourneyApp() {
-  const [page,     setPage]     = useState<Page>('compare');
-  const [tab,      setTab]      = useState<Tab>('ai');
-  const [teams,    setTeams]    = useState<Team[]>(MOCK_TEAMS);
-  const [teamA,    setTeamA]    = useState<Team | null>(null);
-  const [teamB,    setTeamB]    = useState<Team | null>(null);
-  const [loading,  setLoading]  = useState(false);
-  const [analysis, setAnalysis] = useState<MatchupAnalysis | null>(null);
-  const [history,  setHistory]  = useState<HistoryEntry[]>([
-    { id:1, teamA:'Duke',      teamB:'UConn',    pick:'Duke -7.5',    confidence:7.8, date:'Mar 20 2026' },
-    { id:2, teamA:'Michigan',  teamB:'Iowa St.', pick:'Michigan -4.5',confidence:7.2, date:'Mar 20 2026' },
-    { id:3, teamA:'Florida',   teamB:'Houston',  pick:'Under 140.5',  confidence:6.6, date:'Mar 20 2026' },
+  const [page,      setPage]      = useState<Page>('compare');
+  const [tab,       setTab]       = useState<Tab>('ai');
+  const [teams,     setTeams]     = useState<Team[]>(MOCK_TEAMS);
+  const [teamA,     setTeamA]     = useState<Team | null>(null);
+  const [teamB,     setTeamB]     = useState<Team | null>(null);
+  const [loading,   setLoading]   = useState(false);
+  const [analysis,  setAnalysis]  = useState<MatchupAnalysis | null>(null);
+  const [lineRefreshing, setLineRefreshing] = useState(false);
+  const [lastRefresh, setLastRefresh]       = useState<number | null>(null);
+  const [history,   setHistory]   = useState<HistoryEntry[]>([
+    { id:1, teamA:'Duke',     teamB:'UConn',    pick:'Duke -7.5',     confidence:7.8, date:'Mar 20 2026' },
+    { id:2, teamA:'Michigan', teamB:'Iowa St.', pick:'Michigan -4.5', confidence:7.2, date:'Mar 20 2026' },
+    { id:3, teamA:'Florida',  teamB:'Houston',  pick:'Under 140.5',   confidence:6.6, date:'Mar 20 2026' },
   ]);
   const [dataMode, setDataMode] = useState<'mock' | 'live'>('mock');
 
-  // Teams are loaded directly from MOCK_TEAMS (all 68 tournament teams).
-  // When KenPom credentials are set in Vercel, the /api/teams route enriches
-  // efficiency stats server-side. The dropdown always works immediately.
+  // ── Load teams on mount — always start from MOCK_TEAMS (all 68),
+  //    then upgrade to KenPom-enriched data if /api/teams returns the full field
   useEffect(() => {
     fetch('/api/teams')
       .then(r => r.json())
       .then(data => {
-        // Only replace teams if the API returns the full field (68 teams)
-        // This prevents a partial/stale build cache from shrinking the dropdown
         if (data.teams && data.teams.length >= 60) {
           setTeams(data.teams);
           setDataMode(data.mode ?? 'mock');
         }
-        // Otherwise silently keep MOCK_TEAMS — all 68 teams stay visible
       })
-      .catch(() => {
-        // Network error — MOCK_TEAMS already set as default, nothing to do
-      });
+      .catch(() => {/* silently keep MOCK_TEAMS */});
   }, []);
 
+  // ── Fetch live line for the current matchup ───────────────────
+  // Returns a BettingLine from /api/odds, or falls back to MOCK_BETTING_LINES.
+  const fetchLiveLine = useCallback(async (tA: Team, tB: Team): Promise<BettingLine> => {
+    try {
+      const res  = await fetch(
+        `/api/odds?teamA=${encodeURIComponent(tA.name)}&teamB=${encodeURIComponent(tB.name)}`
+      );
+      const data = await res.json();
+      if (data.line) return data.line as BettingLine;
+    } catch {
+      // fall through to mock
+    }
+    // Fallback: mock lines keyed by alphabetically sorted ids
+    const key = [tA.id, tB.id].sort().join('-');
+    return MOCK_BETTING_LINES[key] ?? {
+      spread: -3.5, spreadFav: tA.id, ml_a: -160, ml_b: 134,
+      total: 145.5, source: 'Estimated', updated: 'Demo mode',
+    };
+  }, []);
+
+  // ── Silent background line refresh every 5 minutes ───────────
+  // Only runs while a matchup is being displayed. Updates the line
+  // and re-runs the model silently — no spinner, no interruption.
+  const refreshLine = useCallback(async () => {
+    if (!teamA || !teamB || !analysis) return;
+    setLineRefreshing(true);
+    try {
+      const freshLine = await fetchLiveLine(teamA, teamB);
+      // Only update if the line actually changed
+      const lineChanged =
+        freshLine.spread !== analysis.lines.spread ||
+        freshLine.total  !== analysis.lines.total;
+      if (lineChanged) {
+        const updated = generateAnalysis(teamA, teamB, freshLine);
+        setAnalysis(updated);
+        console.log('[Lines] Refreshed —', freshLine.source, freshLine.updated);
+      }
+      setLastRefresh(Date.now());
+    } catch {
+      // Silently fail — stale line stays displayed
+    } finally {
+      setLineRefreshing(false);
+    }
+  }, [teamA, teamB, analysis, fetchLiveLine]);
+
+  // Set up the 5-minute refresh interval whenever a matchup is active
+  useEffect(() => {
+    if (!teamA || !teamB || !analysis) return;
+    const interval = setInterval(refreshLine, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [teamA, teamB, analysis, refreshLine]);
+
+  // ── Run full analysis ─────────────────────────────────────────
   const runAnalysis = useCallback(async () => {
     if (!teamA || !teamB) return;
     setLoading(true);
     setAnalysis(null);
 
     try {
+      // First try the server-side /api/analyze route (uses KenPom + live odds)
       const res = await fetch('/api/analyze', {
-        method: 'POST',
+        method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ teamAId: teamA.id, teamBId: teamB.id }),
+        body:    JSON.stringify({ teamAId: teamA.id, teamBId: teamB.id }),
       });
       const data = await res.json();
       if (data.analysis) {
         setAnalysis(data.analysis);
         setTab('ai');
-        // Save to history
+        setLastRefresh(Date.now());
         setHistory(h => [{
-          id: Date.now(),
-          teamA: teamA.name,
-          teamB: teamB.name,
-          pick: data.analysis.pickCover,
+          id:         Date.now(),
+          teamA:      teamA.name,
+          teamB:      teamB.name,
+          pick:       data.analysis.pickCover,
           confidence: data.analysis.confidence,
-          date: new Date().toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }),
+          date:       new Date().toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }),
         }, ...h.slice(0, 19)]);
+        return;
       }
-    } catch (err) {
-      // Fallback: run model client-side
-      const key  = [teamA.id, teamB.id].sort().join('-');
-      const line = MOCK_BETTING_LINES[key] ?? {
-        spread:-3.5, spreadFav:teamA.id, ml_a:-160, ml_b:134,
-        total:145.5, source:'Estimated', updated:'Offline',
-      };
-      const result = generateAnalysis(teamA, teamB, line);
-      setAnalysis(result);
-      setTab('ai');
-    } finally {
-      setLoading(false);
+    } catch {
+      // fall through to client-side fallback
     }
-  }, [teamA, teamB]);
+
+    // Client-side fallback: fetch line directly then run model in browser
+    const line   = await fetchLiveLine(teamA, teamB);
+    const result = generateAnalysis(teamA, teamB, line);
+    setAnalysis(result);
+    setTab('ai');
+    setLastRefresh(Date.now());
+    setHistory(h => [{
+      id:         Date.now(),
+      teamA:      teamA.name,
+      teamB:      teamB.name,
+      pick:       result.pickCover,
+      confidence: result.confidence,
+      date:       new Date().toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }),
+    }, ...h.slice(0, 19)]);
+    setLoading(false);
+  }, [teamA, teamB, fetchLiveLine]);
+
+  // Ensure loading is cleared in all paths
+  useEffect(() => {
+    if (analysis) setLoading(false);
+  }, [analysis]);
 
   function loadMatchup(tA: Team, tB: Team) {
-    setTeamA(tA); setTeamB(tB);
-    setPage('compare'); setAnalysis(null);
+    setTeamA(tA);
+    setTeamB(tB);
+    setPage('compare');
+    setAnalysis(null);
     setTimeout(async () => {
       setLoading(true);
-      const key  = [tA.id, tB.id].sort().join('-');
-      const line = MOCK_BETTING_LINES[key] ?? {
-        spread:-3.5, spreadFav:tA.id, ml_a:-160, ml_b:134,
-        total:145.5, source:'Estimated', updated:'demo',
-      };
+      const line   = await fetchLiveLine(tA, tB);
       const result = generateAnalysis(tA, tB, line);
-      setAnalysis(result); setTab('ai'); setLoading(false);
-    }, 800);
+      setAnalysis(result);
+      setTab('ai');
+      setLastRefresh(Date.now());
+    }, 400);
   }
 
+  // ── Format "last refreshed" timestamp ────────────────────────
+  function formatRefreshAge(ts: number | null): string {
+    if (!ts) return '';
+    const secs = Math.floor((Date.now() - ts) / 1000);
+    if (secs < 60)  return 'Just updated';
+    if (secs < 300) return `${Math.floor(secs / 60)}m ago`;
+    return 'Updating...';
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  //  RENDER
+  // ─────────────────────────────────────────────────────────────
   return (
     <div style={{ maxWidth:1400, margin:'0 auto', padding:'0 20px 60px' }}>
+
       {/* Nav */}
       <nav className="nav">
         <div className="nav-logo">
@@ -674,7 +745,7 @@ export default function TourneyApp() {
           <span>TourneyEdge <span style={{ fontSize:11, color:'var(--text3)', fontFamily:'var(--font-sans)' }}>AI</span></span>
         </div>
         <div className="nav-links">
-          {([['compare','Compare'],['history','Saved Picks'],['edge','Best Edges ✨'],['settings','Settings']] as [Page,string][]).map(([p,label]) => (
+          {([['compare','Compare'],['history','Saved Picks'],['edge','Best Edges ✨'],['settings','Settings']] as [Page,string][]).map(([p, label]) => (
             <button key={p} className={`nav-link${page === p ? ' active' : ''}`} onClick={() => setPage(p)}>{label}</button>
           ))}
         </div>
@@ -695,10 +766,10 @@ export default function TourneyApp() {
         Not financial, betting, or investment advice. All projections are statistical model estimates. Bet responsibly.
       </div>
 
-      {/* Pages */}
+      {/* ── COMPARE PAGE ── */}
       {page === 'compare' && (
         <>
-          {/* Selector */}
+          {/* Team Selector */}
           <div className="selector-card">
             <div className="selector-title">Select Matchup</div>
             <div className="selector-grid">
@@ -717,19 +788,24 @@ export default function TourneyApp() {
                   onSelect={t => { setTeamB(t || null); setAnalysis(null); }} />
               </div>
             </div>
-            <button className="compare-btn" disabled={!teamA || !teamB} onClick={runAnalysis}>
-              {teamA && teamB ? `Analyze ${teamA.name} vs ${teamB.name}` : 'Select two teams to compare'}
+            <button className="compare-btn" disabled={!teamA || !teamB || loading} onClick={runAnalysis}>
+              {loading
+                ? 'Running models...'
+                : teamA && teamB
+                ? `Analyze ${teamA.name} vs ${teamB.name}`
+                : 'Select two teams to compare'}
             </button>
           </div>
 
-          {/* Results */}
+          {/* Loading spinner */}
           {loading && (
             <div style={{ display:'flex', flexDirection:'column', alignItems:'center', padding:60, gap:16 }}>
               <div className="spinner" />
-              <div style={{ color:'var(--text2)', fontSize:14 }}>Running prediction models...</div>
+              <div style={{ color:'var(--text2)', fontSize:14 }}>Fetching live lines & running models...</div>
             </div>
           )}
 
+          {/* Empty state */}
           {!loading && !analysis && (
             <div style={{ display:'flex', flexDirection:'column', alignItems:'center', padding:60, gap:12, textAlign:'center' }}>
               <div style={{ fontSize:48, opacity:0.3 }}>🏆</div>
@@ -740,6 +816,7 @@ export default function TourneyApp() {
             </div>
           )}
 
+          {/* Analysis */}
           {!loading && analysis && (
             <>
               {/* Matchup header */}
@@ -770,12 +847,14 @@ export default function TourneyApp() {
                     <div style={{ fontSize:13, color:'var(--text2)' }}>{analysis.tB.record}</div>
                   </div>
                 </div>
+
+                {/* Betting cards */}
                 <div className="betting-row">
                   {[
                     { label:'Moneyline A', val: `${analysis.lines.ml_a > 0 ? '+' : ''}${analysis.lines.ml_a}` },
                     { label:'Moneyline B', val: `${analysis.lines.ml_b > 0 ? '+' : ''}${analysis.lines.ml_b}` },
-                    { label:'Total (O/U)', val: String(analysis.lines.total), color:'var(--amber)' },
-                    { label:'Proj. Total', val: (analysis.projA + analysis.projB).toFixed(1), color:'var(--green)' },
+                    { label:'Total (O/U)', val: String(analysis.lines.total),                       color:'var(--amber)' },
+                    { label:'Proj. Total', val: (analysis.projA + analysis.projB).toFixed(1),       color:'var(--green)' },
                     { label:'Model Edge',  val: `${analysis.spreadEdge > 0 ? '+' : ''}${analysis.spreadEdge.toFixed(1)}`,
                       color: Math.abs(analysis.spreadEdge) > 2 ? 'var(--green)' : 'var(--text2)' },
                   ].map(({ label, val, color }) => (
@@ -785,10 +864,28 @@ export default function TourneyApp() {
                     </div>
                   ))}
                 </div>
+
+                {/* Source row with live refresh indicator */}
                 <div className="source-row">
                   <span className="source-tag">📡 {analysis.lines.source}</span>
                   <span className="source-tag">🕐 {analysis.lines.updated}</span>
-                  <span className="source-tag">🔬 Rules-based model{analysis.aiNarrative ? ' + GPT narrative' : ''}</span>
+                  {lineRefreshing
+                    ? <span className="source-tag" style={{ color:'var(--amber)' }}>🔄 Refreshing...</span>
+                    : lastRefresh
+                    ? <span className="source-tag" style={{ color:'var(--green)' }}>
+                        🟢 {formatRefreshAge(lastRefresh)} · auto-refreshes every 5 min
+                      </span>
+                    : <span className="source-tag">🔬 Rules-based model</span>
+                  }
+                  {/* Manual refresh button */}
+                  <button
+                    onClick={refreshLine}
+                    disabled={lineRefreshing}
+                    style={{ background:'var(--bg3)', border:'1px solid var(--border2)', color:'var(--text2)',
+                      fontSize:11, padding:'4px 10px', borderRadius:20, cursor:'pointer',
+                      opacity: lineRefreshing ? 0.5 : 1 }}>
+                    ↻ Refresh line
+                  </button>
                 </div>
               </div>
 
