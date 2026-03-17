@@ -1,3 +1,4 @@
+
 // src/lib/adapters/kenpom.ts
 // ─────────────────────────────────────────────────────────────
 //  KenPom Adapter
@@ -81,7 +82,7 @@ function parseKenPomHTML(html: string): KenPomRow[] {
     const tds = trMatch[1].match(/<td[^>]*>([\s\S]*?)<\/td>/g) || [];
     if (tds.length < 10) continue;
 
-    const getText = (td: string) => td.replace(/<[^>]+>/g, '').trim();
+    const getText = (td: string | undefined) => (td ?? '').replace(/<[^>]+>/g, '').trim();
     const rank = parseInt(getText(tds[0]));
     const team = getText(tds[1]);
     const adjOE = parseFloat(getText(tds[4]));
