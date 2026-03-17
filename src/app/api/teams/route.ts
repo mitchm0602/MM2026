@@ -4,7 +4,7 @@ import { MOCK_TEAMS } from '@/lib/mock-data';
 import { getTeamsWithKenPom } from '@/lib/adapters/kenpom';
 import { enrichTeamsWithESPN } from '@/lib/adapters/espn';
 
-export const revalidate = 300; // ISR: revalidate every 5 minutes
+export const dynamic = 'force-dynamic'; // ISR: revalidate every 5 minutes
 
 export async function GET() {
   try {
