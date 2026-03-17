@@ -575,21 +575,30 @@ export default function TourneyApp() {
   const [loading,  setLoading]  = useState(false);
   const [analysis, setAnalysis] = useState<MatchupAnalysis | null>(null);
   const [history,  setHistory]  = useState<HistoryEntry[]>([
-    { id:1, teamA:'Duke',    teamB:'Gonzaga', pick:'Duke -4.5',    confidence:7.2, date:'Mar 15 2025', score:'78-71' },
-    { id:2, teamA:'Houston', teamB:'SDSU',    pick:'Houston -8.5', confidence:8.1, date:'Mar 14 2025', score:'72-61' },
-    { id:3, teamA:'Kansas',  teamB:'Tennessee',pick:'Under 143.5', confidence:6.4, date:'Mar 14 2025', score:'68-65' },
+    { id:1, teamA:'Duke',      teamB:'UConn',    pick:'Duke -7.5',    confidence:7.8, date:'Mar 20 2026' },
+    { id:2, teamA:'Michigan',  teamB:'Iowa St.', pick:'Michigan -4.5',confidence:7.2, date:'Mar 20 2026' },
+    { id:3, teamA:'Florida',   teamB:'Houston',  pick:'Under 140.5',  confidence:6.6, date:'Mar 20 2026' },
   ]);
   const [dataMode, setDataMode] = useState<'mock' | 'live'>('mock');
 
-  // Fetch teams from API on mount (uses live data if DATA_MODE=live)
+  // Teams are loaded directly from MOCK_TEAMS (all 68 tournament teams).
+  // When KenPom credentials are set in Vercel, the /api/teams route enriches
+  // efficiency stats server-side. The dropdown always works immediately.
   useEffect(() => {
     fetch('/api/teams')
       .then(r => r.json())
       .then(data => {
-        if (data.teams) setTeams(data.teams);
-        if (data.mode)  setDataMode(data.mode);
+        // Only replace teams if the API returns the full field (68 teams)
+        // This prevents a partial/stale build cache from shrinking the dropdown
+        if (data.teams && data.teams.length >= 60) {
+          setTeams(data.teams);
+          setDataMode(data.mode ?? 'mock');
+        }
+        // Otherwise silently keep MOCK_TEAMS — all 68 teams stay visible
       })
-      .catch(() => setTeams(MOCK_TEAMS));
+      .catch(() => {
+        // Network error — MOCK_TEAMS already set as default, nothing to do
+      });
   }, []);
 
   const runAnalysis = useCallback(async () => {
