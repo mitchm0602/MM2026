@@ -2,7 +2,7 @@
 
 // src/components/TourneyApp.tsx
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import type { Team, BettingLine, MatchupAnalysis, HistoryEntry } from '@/types';
 import { generateAnalysis } from '@/lib/model/prediction';
 import { MOCK_TEAMS, MOCK_BETTING_LINES } from '@/lib/mock-data';
@@ -521,50 +521,432 @@ function HistoryPage({ history }: { history: HistoryEntry[] }) {
   );
 }
 
-// ─── Best Edges Page ──────────────────────────────────────────
-function EdgePage({ teams, onLoadMatchup }: { teams: Team[]; onLoadMatchup: (a: Team, b: Team) => void }) {
-  const edges = teams.slice(0, 8).map((t, i) => {
-    const opp  = teams[i + 1] ?? teams[0];
-    const line = MOCK_BETTING_LINES[[t.id, opp.id].sort().join('-')] ?? {
-      spread: -3.5, spreadFav: t.id, ml_a: -155, ml_b: 128,
-      total: 145.5, source: 'Est.', updated: 'demo',
-    };
-    const a = generateAnalysis(t, opp, line);
-    return { tA: t, tB: opp, edge: a.spreadEdge, conf: a.confidence };
-  }).sort((a, b) => Math.abs(b.edge) - Math.abs(a.edge));
+// ─── Tournament Board Page ────────────────────────────────────
+// All 32 first-round matchups (+ likely round-2 projections for 3/22)
+// sorted by model edge, total edge, or confidence.
+
+type SortKey = 'spreadEdge' | 'totalEdge' | 'confidence';
+type DateFilter = 'all' | '3/19' | '3/20' | '3/21' | '3/22';
+
+// Every scheduled matchup March 19-22 with the correct mock-data line key
+const TOURNAMENT_SCHEDULE: {
+  date: string; region: string; tAId: string; tBId: string;
+}[] = [
+  // ── March 19 ──────────────────────────────────────────────
+  { date:'3/19', region:'East',    tAId:'duke',         tBId:'siena'         },
+  { date:'3/19', region:'East',    tAId:'furman',       tBId:'uconn'         },
+  { date:'3/19', region:'East',    tAId:'louisville',   tBId:'southflorida'  },
+  { date:'3/19', region:'East',    tAId:'ohiostate',    tBId:'tcu'           },
+  { date:'3/19', region:'West',    tAId:'arizona',      tBId:'liu'           },
+  { date:'3/19', region:'West',    tAId:'miamifl',      tBId:'missouri'      },
+  { date:'3/19', region:'West',    tAId:'utahst',       tBId:'villanova'     },
+  // ── March 20 ──────────────────────────────────────────────
+  { date:'3/20', region:'East',    tAId:'michiganst',   tBId:'northdakotast' },
+  { date:'3/20', region:'East',    tAId:'calbaptist',   tBId:'kansas'        },
+  { date:'3/20', region:'East',    tAId:'northerniowa', tBId:'stjohns'       },
+  { date:'3/20', region:'East',    tAId:'ucf',          tBId:'ucla'          },
+  { date:'3/20', region:'West',    tAId:'purdue',       tBId:'queens'        },
+  { date:'3/20', region:'West',    tAId:'gonzaga',      tBId:'kennesawst'    },
+  { date:'3/20', region:'West',    tAId:'highpoint',    tBId:'wisconsin'     },
+  { date:'3/20', region:'West',    tAId:'arkansas',     tBId:'hawaii'        },
+  { date:'3/20', region:'South',   tAId:'florida',      tBId:'prairierview'  },
+  { date:'3/20', region:'South',   tAId:'houston',      tBId:'idaho'         },
+  { date:'3/20', region:'South',   tAId:'nebraska',     tBId:'troy'          },
+  { date:'3/20', region:'South',   tAId:'northcarolina',tBId:'vcu'           },
+  { date:'3/20', region:'Midwest', tAId:'michigan',     tBId:'umbc'          },
+  { date:'3/20', region:'Midwest', tAId:'iowast',       tBId:'tennesseest'   },
+  { date:'3/20', region:'Midwest', tAId:'texastech',    tBId:'akron'         },
+  { date:'3/20', region:'Midwest', tAId:'georgia',      tBId:'stlouis'       },
+  // ── March 21 ──────────────────────────────────────────────
+  { date:'3/21', region:'South',   tAId:'illinois',     tBId:'penn'          },
+  { date:'3/21', region:'South',   tAId:'mcneese',      tBId:'vanderbilt'    },
+  { date:'3/21', region:'South',   tAId:'saintmarys',   tBId:'texasam'       },
+  { date:'3/21', region:'South',   tAId:'clemson',      tBId:'iowa'          },
+  { date:'3/21', region:'Midwest', tAId:'virginia',     tBId:'wrightstate'   },
+  { date:'3/21', region:'Midwest', tAId:'alabama',      tBId:'hofstra'       },
+  { date:'3/21', region:'Midwest', tAId:'kentucky',     tBId:'santaclara'    },
+  { date:'3/21', region:'Midwest', tAId:'tennessee',    tBId:'smu'           },
+  // ── March 22 (Round of 32 — projected top matchups) ───────
+  { date:'3/22', region:'East',    tAId:'duke',         tBId:'uconn'         },
+  { date:'3/22', region:'West',    tAId:'arizona',      tBId:'purdue'        },
+  { date:'3/22', region:'Midwest', tAId:'michigan',     tBId:'iowast'        },
+  { date:'3/22', region:'South',   tAId:'florida',      tBId:'houston'       },
+];
+
+function TourneyBoard({ teams, onLoadMatchup }: {
+  teams: Team[];
+  onLoadMatchup: (a: Team, b: Team) => void;
+}) {
+  const [sortKey,    setSortKey]    = useState<SortKey>('spreadEdge');
+  const [dateFilter, setDateFilter] = useState<DateFilter>('all');
+  const [regionFilter, setRegionFilter] = useState<string>('all');
+  const [showOnlyEdge, setShowOnlyEdge] = useState(false);
+
+  // Build a lookup map from team ID → Team object
+  const teamMap = useMemo(() => {
+    const m: Record<string, Team> = {};
+    teams.forEach(t => { m[t.id] = t; });
+    return m;
+  }, [teams]);
+
+  // Run the model on every scheduled matchup
+  const rows = useMemo(() => {
+    return TOURNAMENT_SCHEDULE
+      .filter(s => dateFilter === 'all' || s.date === dateFilter)
+      .filter(s => regionFilter === 'all' || s.region === regionFilter)
+      .map(s => {
+        const tA = teamMap[s.tAId];
+        const tB = teamMap[s.tBId];
+        if (!tA || !tB) return null;
+
+        // Find line — try both key orderings
+        const key1 = [s.tAId, s.tBId].sort().join('-');
+        const line = MOCK_BETTING_LINES[key1] ?? {
+          spread: Math.abs(tA.seed - tB.seed) * 2.5 + 1.5,
+          spreadFav: tA.seed < tB.seed ? tA.id : tB.id,
+          ml_a: -150, ml_b: 125,
+          total: 145.5,
+          source: 'Est.', updated: 'Est.',
+        };
+
+        const analysis = generateAnalysis(tA, tB, line);
+        const favTeam  = line.spreadFav === tA.id ? tA : tB;
+        const dogTeam  = line.spreadFav === tA.id ? tB : tA;
+
+        return {
+          date:        s.date,
+          region:      s.region,
+          tA, tB,
+          line,
+          favTeam,
+          dogTeam,
+          spreadEdge:  analysis.spreadEdge,
+          totalEdge:   analysis.totalEdge,
+          confidence:  analysis.confidence,
+          pickCover:   analysis.pickCover,
+          ouLean:      analysis.ouLean,
+          projA:       analysis.projA,
+          projB:       analysis.projB,
+          projTotal:   analysis.projTotal,
+          volatility:  analysis.volatility,
+        };
+      })
+      .filter(Boolean) as NonNullable<ReturnType<typeof TOURNAMENT_SCHEDULE['map']>[0]>[];
+  }, [teamMap, dateFilter, regionFilter]);
+
+  // Sort
+  const sorted = useMemo(() => {
+    const filtered = showOnlyEdge
+      ? rows.filter(r => Math.abs(r.spreadEdge) > 3 || Math.abs(r.totalEdge) > 3)
+      : rows;
+
+    return [...filtered].sort((a, b) => {
+      if (sortKey === 'confidence') return b.confidence - a.confidence;
+      return Math.abs(b[sortKey]) - Math.abs(a[sortKey]);
+    });
+  }, [rows, sortKey, showOnlyEdge]);
+
+  const dates   = ['all', '3/19', '3/20', '3/21', '3/22'];
+  const regions = ['all', 'East', 'West', 'Midwest', 'South'];
+
+  const edgeColor = (v: number, threshold = 3) =>
+    Math.abs(v) >= threshold * 2 ? (v > 0 ? 'var(--green)' : 'var(--red)')
+    : Math.abs(v) >= threshold   ? (v > 0 ? '#6ee09a'       : '#ff8888')
+    : 'var(--text3)';
+
+  const confColor = (c: number) =>
+    c >= 7.5 ? 'var(--green)' : c >= 6 ? 'var(--amber)' : 'var(--red)';
+
+  const confLabel = (c: number) =>
+    c >= 7.5 ? 'HIGH' : c >= 6 ? 'MED' : 'LOW';
+
+  const volIcon = { HIGH: '🔥', MODERATE: '⚖️', LOW: '🧊' };
 
   return (
-    <div className="section-card">
-      <div className="section-title">Best Edges Today</div>
+    <div>
+      {/* Header */}
+      <div style={{ marginBottom:20 }}>
+        <div style={{ fontSize:22, fontWeight:700, marginBottom:4 }}>
+          🏆 Tournament Board
+        </div>
+        <div style={{ fontSize:13, color:'var(--text3)' }}>
+          Every first-round matchup ranked by model edge — find the best bets across all four days
+        </div>
+      </div>
+
+      {/* Controls */}
+      <div style={{ display:'flex', flexWrap:'wrap', gap:12, marginBottom:20, alignItems:'center' }}>
+
+        {/* Sort */}
+        <div style={{ display:'flex', gap:4, background:'var(--bg3)', borderRadius:8, padding:4 }}>
+          {([
+            ['spreadEdge', '📊 Spread Edge'],
+            ['totalEdge',  '🎯 Total Edge'],
+            ['confidence', '💪 Confidence'],
+          ] as [SortKey, string][]).map(([key, label]) => (
+            <button key={key} onClick={() => setSortKey(key)}
+              style={{ fontSize:12, padding:'6px 12px', borderRadius:6, border:'none', cursor:'pointer',
+                background: sortKey === key ? 'var(--accent)' : 'transparent',
+                color: sortKey === key ? '#fff' : 'var(--text2)',
+                fontWeight: sortKey === key ? 600 : 400 }}>
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* Date filter */}
+        <div style={{ display:'flex', gap:4, background:'var(--bg3)', borderRadius:8, padding:4 }}>
+          {dates.map(d => (
+            <button key={d} onClick={() => setDateFilter(d as DateFilter)}
+              style={{ fontSize:12, padding:'6px 10px', borderRadius:6, border:'none', cursor:'pointer',
+                background: dateFilter === d ? 'var(--accent2)' : 'transparent',
+                color: dateFilter === d ? '#fff' : 'var(--text2)',
+                fontWeight: dateFilter === d ? 600 : 400 }}>
+              {d === 'all' ? 'All Days' : d}
+            </button>
+          ))}
+        </div>
+
+        {/* Region filter */}
+        <div style={{ display:'flex', gap:4, background:'var(--bg3)', borderRadius:8, padding:4 }}>
+          {regions.map(r => (
+            <button key={r} onClick={() => setRegionFilter(r)}
+              style={{ fontSize:11, padding:'6px 10px', borderRadius:6, border:'none', cursor:'pointer',
+                background: regionFilter === r ? 'var(--amber)' : 'transparent',
+                color: regionFilter === r ? '#000' : 'var(--text2)',
+                fontWeight: regionFilter === r ? 600 : 400 }}>
+              {r === 'all' ? 'All Regions' : r}
+            </button>
+          ))}
+        </div>
+
+        {/* Edge-only toggle */}
+        <label style={{ display:'flex', alignItems:'center', gap:6, fontSize:12, color:'var(--text2)', cursor:'pointer' }}>
+          <button className={`toggle ${showOnlyEdge ? 'on' : ''}`}
+            onClick={() => setShowOnlyEdge(v => !v)} />
+          Best edges only (&gt;3 pts)
+        </label>
+
+        <span style={{ marginLeft:'auto', fontSize:12, color:'var(--text3)' }}>
+          {sorted.length} matchup{sorted.length !== 1 ? 's' : ''}
+        </span>
+      </div>
+
+      {/* Summary bar — top picks at a glance */}
+      {sorted.length > 0 && (
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(200px, 1fr))',
+          gap:10, marginBottom:20 }}>
+          {[
+            {
+              label: '🔥 Best Spread Bet',
+              value: (() => {
+                const top = [...sorted].sort((a,b) => Math.abs(b.spreadEdge) - Math.abs(a.spreadEdge))[0];
+                return top ? `${top.pickCover} (${top.spreadEdge > 0 ? '+' : ''}${top.spreadEdge.toFixed(1)})` : '—';
+              })(),
+              color: 'var(--green)',
+            },
+            {
+              label: '🎯 Best Total Bet',
+              value: (() => {
+                const top = [...sorted].sort((a,b) => Math.abs(b.totalEdge) - Math.abs(a.totalEdge))[0];
+                return top ? top.ouLean.split(' (')[0] : '—';
+              })(),
+              color: 'var(--amber)',
+            },
+            {
+              label: '💪 Highest Confidence',
+              value: (() => {
+                const top = [...sorted].sort((a,b) => b.confidence - a.confidence)[0];
+                return top ? `${top.tA.name} vs ${top.tB.name} (${top.confidence})` : '—';
+              })(),
+              color: 'var(--accent)',
+            },
+            {
+              label: '⚠️ Avoid (Low Conf.)',
+              value: (() => {
+                const bot = [...sorted].sort((a,b) => a.confidence - b.confidence)[0];
+                return bot ? `${bot.tA.name} vs ${bot.tB.name} (${bot.confidence})` : '—';
+              })(),
+              color: 'var(--text3)',
+            },
+          ].map(({ label, value, color }) => (
+            <div key={label} style={{ background:'var(--bg3)', border:'1px solid var(--border)',
+              borderRadius:'var(--radius)', padding:'12px 14px' }}>
+              <div style={{ fontSize:11, color:'var(--text3)', marginBottom:4 }}>{label}</div>
+              <div style={{ fontSize:13, fontWeight:600, color }}>{value}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Main table */}
       <div style={{ overflowX:'auto' }}>
-        <table className="stat-table">
+        <table className="stat-table" style={{ minWidth:900 }}>
           <thead>
-            <tr><th>Matchup</th><th>Model Edge</th><th>Confidence</th><th>Lean</th><th>Action</th></tr>
+            <tr>
+              <th style={{ width:40 }}>#</th>
+              <th>Date</th>
+              <th>Matchup</th>
+              <th>Proj. Score</th>
+              <th>Spread</th>
+              <th style={{ cursor:'pointer' }} onClick={() => setSortKey('spreadEdge')}>
+                Spread Edge {sortKey === 'spreadEdge' ? '↓' : ''}
+              </th>
+              <th>Pick to Cover</th>
+              <th style={{ cursor:'pointer' }} onClick={() => setSortKey('totalEdge')}>
+                O/U Edge {sortKey === 'totalEdge' ? '↓' : ''}
+              </th>
+              <th>O/U Lean</th>
+              <th style={{ cursor:'pointer' }} onClick={() => setSortKey('confidence')}>
+                Conf. {sortKey === 'confidence' ? '↓' : ''}
+              </th>
+              <th>Action</th>
+            </tr>
           </thead>
           <tbody>
-            {edges.map(({ tA, tB, edge, conf }) => (
-              <tr key={tA.id + tB.id}>
-                <td><strong>{tA.name}</strong> vs {tB.name}</td>
-                <td>
-                  <span className={`edge-badge ${Math.abs(edge) > 4 ? 'pos' : 'neu'}`}>
-                    {edge > 0 ? '+' : ''}{edge.toFixed(1)}
-                  </span>
-                </td>
-                <td style={{ color: conf >= 7 ? 'var(--green)' : 'var(--text2)' }}>{conf}/10</td>
-                <td style={{ fontSize:12, fontWeight:600, color: edge > 0 ? 'var(--green)' : 'var(--red)' }}>
-                  {edge > 0 ? tA.name : tB.name}
-                </td>
-                <td>
-                  <button onClick={() => onLoadMatchup(tA, tB)}
-                    style={{ background:'var(--accent)', color:'#fff', border:'none', borderRadius:6,
-                      padding:'6px 12px', fontSize:12, cursor:'pointer' }}>
-                    Analyze →
-                  </button>
-                </td>
-              </tr>
-            ))}
+            {sorted.map((r, i) => {
+              const spreadAbs  = Math.abs(r.spreadEdge);
+              const totalAbs   = Math.abs(r.totalEdge);
+              const isTopSpread = i === 0 && sortKey === 'spreadEdge';
+              const isTopTotal  = i === 0 && sortKey === 'totalEdge';
+
+              return (
+                <tr key={r.tA.id + r.tB.id}
+                  style={{ background: i === 0 && sortKey !== 'confidence'
+                    ? 'rgba(79,126,255,0.06)' : undefined }}>
+
+                  {/* Rank */}
+                  <td style={{ fontSize:12, color:'var(--text3)', fontWeight:600 }}>
+                    {i + 1}
+                  </td>
+
+                  {/* Date + Region */}
+                  <td>
+                    <div style={{ fontSize:13, fontWeight:600 }}>{r.date}</div>
+                    <div style={{ fontSize:10, color:'var(--text3)' }}>{r.region}</div>
+                  </td>
+
+                  {/* Matchup */}
+                  <td>
+                    <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                      <span style={{ fontSize:16 }}>{r.tA.emoji}</span>
+                      <div>
+                        <div style={{ fontSize:13, fontWeight:600 }}>
+                          <span style={{ color: r.tA.color }}>{r.tA.name}</span>
+                          <span style={{ color:'var(--text3)', fontWeight:400, margin:'0 4px' }}>vs</span>
+                          <span style={{ color: r.tB.color }}>{r.tB.name}</span>
+                        </div>
+                        <div style={{ fontSize:11, color:'var(--text3)' }}>
+                          #{r.tA.seed} vs #{r.tB.seed} · {volIcon[r.volatility]}
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+
+                  {/* Projected score */}
+                  <td>
+                    <div style={{ fontSize:13, fontWeight:700, letterSpacing:0.5 }}>
+                      {Math.round(r.projA)}–{Math.round(r.projB)}
+                    </div>
+                    <div style={{ fontSize:10, color:'var(--text3)' }}>
+                      proj total {r.projTotal.toFixed(0)}
+                    </div>
+                  </td>
+
+                  {/* Market spread */}
+                  <td>
+                    <div style={{ fontSize:13, fontWeight:600 }}>
+                      {r.favTeam.name} -{r.line.spread.toFixed(1)}
+                    </div>
+                    <div style={{ fontSize:10, color:'var(--text3)' }}>{r.line.source}</div>
+                  </td>
+
+                  {/* Spread edge */}
+                  <td>
+                    <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                      <span style={{ fontSize:16, fontWeight:800,
+                        color: edgeColor(r.spreadEdge) }}>
+                        {r.spreadEdge > 0 ? '+' : ''}{r.spreadEdge.toFixed(1)}
+                      </span>
+                      {spreadAbs >= 6 && <span style={{ fontSize:10, background:'rgba(34,201,122,0.15)',
+                        color:'var(--green)', padding:'2px 6px', borderRadius:10, fontWeight:700 }}>
+                        SHARP
+                      </span>}
+                    </div>
+                    <div style={{ fontSize:10, color:'var(--text3)', marginTop:2 }}>
+                      {spreadAbs >= 6 ? 'Strong edge' : spreadAbs >= 3 ? 'Moderate edge' : 'Thin edge'}
+                    </div>
+                  </td>
+
+                  {/* Pick to cover */}
+                  <td>
+                    <span style={{ fontSize:12, fontWeight:700,
+                      color: r.spreadEdge > 0 ? 'var(--green)' : 'var(--red)' }}>
+                      {r.pickCover}
+                    </span>
+                  </td>
+
+                  {/* Total edge */}
+                  <td>
+                    <span style={{ fontSize:16, fontWeight:800,
+                      color: edgeColor(r.totalEdge) }}>
+                      {r.totalEdge > 0 ? '+' : ''}{r.totalEdge.toFixed(1)}
+                    </span>
+                    <div style={{ fontSize:10, color:'var(--text3)', marginTop:2 }}>
+                      mkt {r.line.total}
+                    </div>
+                  </td>
+
+                  {/* O/U lean */}
+                  <td>
+                    <span style={{ fontSize:12, fontWeight:600,
+                      color: r.totalEdge > 2 ? 'var(--amber)' : r.totalEdge < -2 ? 'var(--accent)' : 'var(--text3)' }}>
+                      {r.ouLean.split(' (')[0]}
+                    </span>
+                  </td>
+
+                  {/* Confidence */}
+                  <td>
+                    <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                      <span style={{ fontSize:16, fontWeight:800, color: confColor(r.confidence) }}>
+                        {r.confidence}
+                      </span>
+                      <span style={{ fontSize:10, fontWeight:700, padding:'2px 6px',
+                        borderRadius:10, background: r.confidence >= 7.5
+                          ? 'rgba(34,201,122,0.15)' : r.confidence >= 6
+                          ? 'rgba(255,179,64,0.15)' : 'rgba(255,79,106,0.1)',
+                        color: confColor(r.confidence) }}>
+                        {confLabel(r.confidence)}
+                      </span>
+                    </div>
+                  </td>
+
+                  {/* Action */}
+                  <td>
+                    <button
+                      onClick={() => onLoadMatchup(r.tA, r.tB)}
+                      style={{ background:'var(--accent)', color:'#fff', border:'none',
+                        borderRadius:6, padding:'6px 12px', fontSize:11, cursor:'pointer',
+                        fontWeight:600, whiteSpace:'nowrap' }}>
+                      Deep Dive →
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
+      </div>
+
+      {sorted.length === 0 && (
+        <div style={{ textAlign:'center', padding:40, color:'var(--text3)' }}>
+          No matchups found for the selected filters.
+        </div>
+      )}
+
+      <div style={{ marginTop:16, fontSize:11, color:'var(--text3)', textAlign:'center' }}>
+        ⚠️ For informational purposes only. Not financial or betting advice.
+        Model edges are statistical estimates — always verify live lines before placing bets.
       </div>
     </div>
   );
@@ -745,7 +1127,7 @@ export default function TourneyApp() {
           <span>TourneyEdge <span style={{ fontSize:11, color:'var(--text3)', fontFamily:'var(--font-sans)' }}>AI</span></span>
         </div>
         <div className="nav-links">
-          {([['compare','Compare'],['history','Saved Picks'],['edge','Best Edges ✨'],['settings','Settings']] as [Page,string][]).map(([p, label]) => (
+          {([['compare','Compare'],['history','Saved Picks'],['edge','Board 🏆'],['settings','Settings']] as [Page,string][]).map(([p, label]) => (
             <button key={p} className={`nav-link${page === p ? ' active' : ''}`} onClick={() => setPage(p)}>{label}</button>
           ))}
         </div>
@@ -906,7 +1288,7 @@ export default function TourneyApp() {
       )}
 
       {page === 'history'  && <HistoryPage history={history} />}
-      {page === 'edge'     && <EdgePage teams={teams} onLoadMatchup={loadMatchup} />}
+      {page === 'edge'     && <TourneyBoard teams={teams} onLoadMatchup={loadMatchup} />}
       {page === 'settings' && <SettingsPage />}
     </div>
   );
