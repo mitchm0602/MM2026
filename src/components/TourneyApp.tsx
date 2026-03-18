@@ -554,6 +554,25 @@ function HistoryPage({ history }: { history: HistoryEntry[] }) {
 }
 
 // ─── Tournament Board Page ────────────────────────────────────
+// Explicit row type so TypeScript can resolve spreadEdge etc.
+interface BoardRow {
+  date:       string;
+  region:     string;
+  tA:         Team;
+  tB:         Team;
+  line:       BettingLine;
+  favTeam:    Team;
+  dogTeam:    Team;
+  spreadEdge: number;
+  totalEdge:  number;
+  confidence: number;
+  pickCover:  string;
+  ouLean:     string;
+  projA:      number;
+  projB:      number;
+  projTotal:  number;
+  volatility: 'HIGH' | 'MODERATE' | 'LOW';
+}
 // All 32 first-round matchups (+ likely round-2 projections for 3/22)
 // sorted by model edge, total edge, or confidence.
 
@@ -622,59 +641,56 @@ function TourneyBoard({ teams, onLoadMatchup }: {
   }, [teams]);
 
   // Run the model on every scheduled matchup
-  const rows = useMemo(() => {
-    return TOURNAMENT_SCHEDULE
-      .filter(s => dateFilter === 'all' || s.date === dateFilter)
-      .filter(s => regionFilter === 'all' || s.region === regionFilter)
-      .map(s => {
-        const tA = teamMap[s.tAId];
-        const tB = teamMap[s.tBId];
-        if (!tA || !tB) return null;
+  const rows = useMemo((): BoardRow[] => {
+    const result: BoardRow[] = [];
+    for (const s of TOURNAMENT_SCHEDULE) {
+      if (dateFilter !== 'all' && s.date !== dateFilter) continue;
+      if (regionFilter !== 'all' && s.region !== regionFilter) continue;
 
-        // Find line — try both key orderings
-        const key1 = [s.tAId, s.tBId].sort().join('-');
-        const line = MOCK_BETTING_LINES[key1] ?? {
-          spread: Math.abs(tA.seed - tB.seed) * 2.5 + 1.5,
-          spreadFav: tA.seed < tB.seed ? tA.id : tB.id,
-          ml_a: -150, ml_b: 125,
-          total: 145.5,
-          source: 'Est.', updated: 'Est.',
-        };
+      const tA = teamMap[s.tAId];
+      const tB = teamMap[s.tBId];
+      if (!tA || !tB) continue;
 
-        const analysis = generateAnalysis(tA, tB, line);
-        const favTeam  = line.spreadFav === tA.id ? tA : tB;
-        const dogTeam  = line.spreadFav === tA.id ? tB : tA;
+      const key  = [s.tAId, s.tBId].sort().join('-');
+      const line: BettingLine = MOCK_BETTING_LINES[key] ?? {
+        spread:    Math.abs(tA.seed - tB.seed) * 2.5 + 1.5,
+        spreadFav: tA.seed < tB.seed ? tA.id : tB.id,
+        ml_a: -150, ml_b: 125,
+        total: 145.5,
+        source: 'Est.', updated: 'Est.',
+      };
 
-        return {
-          date:        s.date,
-          region:      s.region,
-          tA, tB,
-          line,
-          favTeam,
-          dogTeam,
-          spreadEdge:  analysis.spreadEdge,
-          totalEdge:   analysis.totalEdge,
-          confidence:  analysis.confidence,
-          pickCover:   analysis.pickCover,
-          ouLean:      analysis.ouLean,
-          projA:       analysis.projA,
-          projB:       analysis.projB,
-          projTotal:   analysis.projTotal,
-          volatility:  analysis.volatility,
-        };
-      })
-      .filter(Boolean) as NonNullable<ReturnType<typeof TOURNAMENT_SCHEDULE['map']>[0]>[];
+      const analysis = generateAnalysis(tA, tB, line);
+      result.push({
+        date:       s.date,
+        region:     s.region,
+        tA, tB, line,
+        favTeam:    line.spreadFav === tA.id ? tA : tB,
+        dogTeam:    line.spreadFav === tA.id ? tB : tA,
+        spreadEdge: analysis.spreadEdge,
+        totalEdge:  analysis.totalEdge,
+        confidence: analysis.confidence,
+        pickCover:  analysis.pickCover,
+        ouLean:     analysis.ouLean,
+        projA:      analysis.projA,
+        projB:      analysis.projB,
+        projTotal:  analysis.projTotal,
+        volatility: analysis.volatility,
+      });
+    }
+    return result;
   }, [teamMap, dateFilter, regionFilter]);
 
   // Sort
-  const sorted = useMemo(() => {
-    const filtered = showOnlyEdge
+  const sorted = useMemo((): BoardRow[] => {
+    const filtered: BoardRow[] = showOnlyEdge
       ? rows.filter(r => Math.abs(r.spreadEdge) > 3 || Math.abs(r.totalEdge) > 3)
       : rows;
 
-    return [...filtered].sort((a, b) => {
+    return [...filtered].sort((a: BoardRow, b: BoardRow) => {
       if (sortKey === 'confidence') return b.confidence - a.confidence;
-      return Math.abs(b[sortKey]) - Math.abs(a[sortKey]);
+      if (sortKey === 'spreadEdge') return Math.abs(b.spreadEdge) - Math.abs(a.spreadEdge);
+      return Math.abs(b.totalEdge) - Math.abs(a.totalEdge);
     });
   }, [rows, sortKey, showOnlyEdge]);
 
