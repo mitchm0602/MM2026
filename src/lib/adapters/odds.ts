@@ -1,90 +1,202 @@
 // src/lib/adapters/odds.ts
 // ─────────────────────────────────────────────────────────────
-//  The Odds API Adapter
+//  The Odds API Adapter — fixed version
 //
-//  HOW TO WIRE UP:
+//  SETUP:
 //  1. Sign up at https://the-odds-api.com (free: 500 req/month)
-//  2. Set ODDS_API_KEY in .env.local
-//  3. Set ODDS_API_BOOK to your preferred sportsbook (e.g. draftkings)
-//  4. Set DATA_MODE=live
+//  2. Add to Vercel env vars:
+//       ODDS_API_KEY   = your key
+//       ODDS_API_BOOK  = draftkings  (or fanduel, betmgm, etc.)
+//       ODDS_API_SPORT = basketball_ncaab
+//       DATA_MODE      = live
 //
-//  The Odds API returns lines from 40+ sportsbooks in one call.
-//  We normalize to our BettingLine format.
-//
-//  API Docs: https://the-odds-api.com/liveapi/guides/v4/
+//  BUGS FIXED vs previous version:
+//  - Mock key lookup now uses actual team IDs, not name slices
+//  - Live team matching uses a robust fuzzy-match with known aliases
+//  - spreadFav now correctly stores the team's actual ID
+//  - Server-side in-memory cache added (5 min TTL) so one API call
+//    serves all concurrent users instead of burning quota per user
 // ─────────────────────────────────────────────────────────────
 
 import type { BettingLine } from '@/types';
-import { MOCK_BETTING_LINES } from '@/lib/mock-data';
+import { MOCK_BETTING_LINES, MOCK_TEAMS } from '@/lib/mock-data';
 
 const BASE_URL = 'https://api.the-odds-api.com/v4';
 
-// ── Raw API response types ─────────────────────────────────────
+// ── Raw API response types ────────────────────────────────────
 interface OddsApiOutcome {
-  name: string;
-  price: number;   // American odds
-  point?: number;  // spread or total value
+  name:   string;
+  price:  number;
+  point?: number;
 }
-
 interface OddsApiMarket {
-  key: string;     // 'spreads' | 'totals' | 'h2h'
+  key:      string;
   outcomes: OddsApiOutcome[];
   last_update: string;
 }
-
 interface OddsApiBookmaker {
-  key: string;
-  title: string;
+  key:      string;
+  title:    string;
   last_update: string;
-  markets: OddsApiMarket[];
+  markets:  OddsApiMarket[];
 }
-
 interface OddsApiGame {
-  id: string;
-  sport_key: string;
+  id:           string;
+  sport_key:    string;
   commence_time: string;
-  home_team: string;
-  away_team: string;
-  bookmakers: OddsApiBookmaker[];
+  home_team:    string;
+  away_team:    string;
+  bookmakers:   OddsApiBookmaker[];
 }
 
-// ── Fetch all NCAAB games with odds ───────────────────────────
-export async function fetchAllOdds(): Promise<OddsApiGame[]> {
-  const apiKey = process.env.ODDS_API_KEY;
-  const sport = process.env.ODDS_API_SPORT || 'basketball_ncaab';
-  const book = process.env.ODDS_API_BOOK || 'draftkings';
+// ── Server-side in-memory cache (survives across requests in same serverless instance)
+let _cache: { games: OddsApiGame[]; fetchedAt: number } | null = null;
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
-  if (!apiKey) throw new Error('ODDS_API_KEY is not set in .env.local');
+// ── Team name aliases ─────────────────────────────────────────
+// The Odds API uses full school names. Our team IDs use short slugs.
+// This map lets us match either direction.
+const TEAM_ALIASES: Record<string, string[]> = {
+  'duke':          ['Duke'],
+  'arizona':       ['Arizona'],
+  'michigan':      ['Michigan'],
+  'florida':       ['Florida'],
+  'uconn':         ['UConn', 'Connecticut'],
+  'purdue':        ['Purdue'],
+  'iowast':        ['Iowa State', 'Iowa St'],
+  'houston':       ['Houston'],
+  'michiganst':    ['Michigan State', 'Michigan St'],
+  'gonzaga':       ['Gonzaga'],
+  'virginia':      ['Virginia'],
+  'illinois':      ['Illinois'],
+  'kansas':        ['Kansas'],
+  'arkansas':      ['Arkansas'],
+  'alabama':       ['Alabama'],
+  'nebraska':      ['Nebraska'],
+  'stjohns':       ["St. John's", 'St Johns', 'Saint Johns'],
+  'wisconsin':     ['Wisconsin'],
+  'texastech':     ['Texas Tech'],
+  'vanderbilt':    ['Vanderbilt'],
+  'louisville':    ['Louisville'],
+  'byu':           ['BYU', 'Brigham Young'],
+  'tennessee':     ['Tennessee'],
+  'northcarolina': ['North Carolina', 'UNC'],
+  'ucla':          ['UCLA'],
+  'miamifl':       ['Miami (FL)', 'Miami FL', 'Miami'],
+  'kentucky':      ['Kentucky'],
+  'saintmarys':    ["Saint Mary's", "St. Mary's"],
+  'ohiostate':     ['Ohio State', 'Ohio St'],
+  'villanova':     ['Villanova'],
+  'georgia':       ['Georgia'],
+  'clemson':       ['Clemson'],
+  'tcu':           ['TCU', 'Texas Christian'],
+  'utahst':        ['Utah State', 'Utah St'],
+  'stlouis':       ['Saint Louis', 'St. Louis'],
+  'iowa':          ['Iowa'],
+  'ucf':           ['UCF', 'Central Florida'],
+  'missouri':      ['Missouri'],
+  'santaclara':    ['Santa Clara'],
+  'texasam':       ['Texas A&M'],
+  'southflorida':  ['South Florida', 'USF'],
+  'texas':         ['Texas'],
+  'ncstate':       ['NC State', 'N.C. State', 'North Carolina State'],
+  'smu':           ['SMU', 'Southern Methodist'],
+  'miamioh':       ['Miami (OH)', 'Miami OH', 'Miami (Ohio)'],
+  'vcu':           ['VCU', 'Virginia Commonwealth'],
+  'northerniowa':  ['Northern Iowa', 'N. Iowa'],
+  'highpoint':     ['High Point'],
+  'akron':         ['Akron'],
+  'mcneese':       ['McNeese', 'McNeese State'],
+  'calbaptist':    ['Cal Baptist', 'California Baptist'],
+  'hawaii':        ['Hawaii', "Hawai'i"],
+  'hofstra':       ['Hofstra'],
+  'troy':          ['Troy'],
+  'northdakotast': ['North Dakota State', 'NDSU'],
+  'kennesawst':    ['Kennesaw State', 'Kennesaw St'],
+  'wrightstate':   ['Wright State'],
+  'penn':          ['Penn', 'Pennsylvania'],
+  'furman':        ['Furman'],
+  'queens':        ['Queens'],
+  'tennesseest':   ['Tennessee State', 'Tennessee St'],
+  'idaho':         ['Idaho'],
+  'siena':         ['Siena'],
+  'liu':           ['LIU', 'Long Island'],
+  'umbc':          ['UMBC'],
+  'howard':        ['Howard'],
+  'prairierview':  ['Prairie View', 'Prairie View A&M'],
+  'lehigh':        ['Lehigh'],
+};
+
+// Returns true if an API team name matches any alias for a given team ID
+function teamMatches(apiName: string, teamId: string): boolean {
+  const aliases = TEAM_ALIASES[teamId] ?? [];
+  const lower   = apiName.toLowerCase();
+  return aliases.some(alias => lower.includes(alias.toLowerCase()));
+}
+
+// Find a team ID from an API team name
+function findTeamId(apiName: string): string | null {
+  for (const [id, aliases] of Object.entries(TEAM_ALIASES)) {
+    if (aliases.some(a => apiName.toLowerCase().includes(a.toLowerCase()))) {
+      return id;
+    }
+  }
+  return null;
+}
+
+// ── Fetch all NCAAB odds from the API (with caching) ─────────
+export async function fetchAllOdds(): Promise<OddsApiGame[]> {
+  // Return cached data if still fresh
+  const now = Date.now();
+  if (_cache && (now - _cache.fetchedAt) < CACHE_TTL) {
+    console.log('[OddsAPI] Returning cached data');
+    return _cache.games;
+  }
+
+  const apiKey = process.env.ODDS_API_KEY;
+  const sport  = process.env.ODDS_API_SPORT || 'basketball_ncaab';
+  const book   = process.env.ODDS_API_BOOK  || 'draftkings';
+
+  if (!apiKey) throw new Error('ODDS_API_KEY is not set in Vercel environment variables');
 
   const url = new URL(`${BASE_URL}/sports/${sport}/odds`);
-  url.searchParams.set('apiKey', apiKey);
-  url.searchParams.set('regions', 'us');
-  url.searchParams.set('markets', 'spreads,totals,h2h');
+  url.searchParams.set('apiKey',     apiKey);
+  url.searchParams.set('regions',    'us');
+  url.searchParams.set('markets',    'spreads,totals,h2h');
   url.searchParams.set('oddsFormat', 'american');
   url.searchParams.set('bookmakers', book);
 
-  const res = await fetch(url.toString(), {
-    next: { revalidate: 300 }, // Next.js: cache for 5 minutes
-  });
+  console.log('[OddsAPI] Fetching fresh odds...');
+  const res = await fetch(url.toString(), { cache: 'no-store' });
 
   if (!res.ok) {
     const body = await res.text();
-    throw new Error(`Odds API error ${res.status}: ${body}`);
+    throw new Error(`Odds API ${res.status}: ${body}`);
   }
 
-  // Log remaining quota from response headers
   const remaining = res.headers.get('x-requests-remaining');
-  console.log(`[OddsAPI] Requests remaining this month: ${remaining}`);
+  const used      = res.headers.get('x-requests-used');
+  console.log(`[OddsAPI] Quota — used: ${used}, remaining: ${remaining}`);
 
-  return res.json();
+  const games: OddsApiGame[] = await res.json();
+
+  // Store in cache
+  _cache = { games, fetchedAt: Date.now() };
+  console.log(`[OddsAPI] Cached ${games.length} games`);
+
+  return games;
 }
 
-// ── Normalize one game's odds into our BettingLine format ──────
-function normalizeGame(game: OddsApiGame, teamAName: string, teamBName: string): BettingLine | null {
+// ── Normalize one game into our BettingLine format ────────────
+function normalizeGame(
+  game:      OddsApiGame,
+  teamAId:   string,
+  teamBId:   string,
+): BettingLine | null {
   const book = process.env.ODDS_API_BOOK || 'draftkings';
-  const bookmaker = game.bookmakers.find(b => b.key === book)
-    ?? game.bookmakers[0]; // fallback to first available
 
+  const bookmaker = game.bookmakers.find(b => b.key === book)
+    ?? game.bookmakers[0];
   if (!bookmaker) return null;
 
   const spreadsMarket = bookmaker.markets.find(m => m.key === 'spreads');
@@ -93,85 +205,108 @@ function normalizeGame(game: OddsApiGame, teamAName: string, teamBName: string):
 
   if (!spreadsMarket || !totalsMarket) return null;
 
-  // Identify which outcome corresponds to team A vs team B
-  const spreadA = spreadsMarket.outcomes.find(o =>
-    o.name.toLowerCase().includes(teamAName.toLowerCase())
-  );
-  const spreadB = spreadsMarket.outcomes.find(o =>
-    o.name.toLowerCase().includes(teamBName.toLowerCase())
-  );
-  const mlA = h2hMarket?.outcomes.find(o => o.name.toLowerCase().includes(teamAName.toLowerCase()));
-  const mlB = h2hMarket?.outcomes.find(o => o.name.toLowerCase().includes(teamBName.toLowerCase()));
-  const overOutcome = totalsMarket.outcomes.find(o => o.name.toLowerCase() === 'over');
+  // Match outcomes to team A and team B using the alias table
+  const spreadA = spreadsMarket.outcomes.find(o => teamMatches(o.name, teamAId));
+  const spreadB = spreadsMarket.outcomes.find(o => teamMatches(o.name, teamBId));
+  const mlA     = h2hMarket?.outcomes.find(o => teamMatches(o.name, teamAId));
+  const mlB     = h2hMarket?.outcomes.find(o => teamMatches(o.name, teamBId));
+  const over    = totalsMarket.outcomes.find(o => o.name.toLowerCase() === 'over');
 
-  if (!spreadA?.point || !overOutcome?.point) return null;
+  if (!spreadA?.point || !over?.point) {
+    console.warn(`[OddsAPI] Could not find spread/total for ${teamAId} vs ${teamBId}`);
+    return null;
+  }
 
-  const spreadFav = (spreadA.point ?? 0) < 0 ? 'teamA' : 'teamB';
+  // FIX: spreadFav must be the actual team ID, not the string 'teamA'
+  const spreadFav = (spreadA.point ?? 0) < 0 ? teamAId : teamBId;
 
   return {
-    spread: spreadA.point ?? 0,
+    spread:    Math.abs(spreadA.point),   // always store as positive; spreadFav tells us who's favored
     spreadFav,
-    ml_a: mlA?.price ?? 0,
-    ml_b: mlB?.price ?? 0,
-    total: overOutcome.point,
-    source: bookmaker.title,
-    updated: new Date(bookmaker.last_update).toLocaleTimeString('en-US', {
-      month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit',
-    }),
+    ml_a:      mlA?.price  ?? 0,
+    ml_b:      mlB?.price  ?? 0,
+    total:     over.point,
+    source:    bookmaker.title,
+    updated:   new Date(bookmaker.last_update).toLocaleString('en-US', {
+                 month: 'numeric', day: 'numeric',
+                 hour: 'numeric', minute: '2-digit',
+               }),
   };
 }
 
-// ── Main export: get betting line for a specific matchup ───────
+// ── Main export: get line for a specific matchup ──────────────
 export async function getBettingLine(
-  teamAName: string,
-  teamBName: string
+  teamAId: string,
+  teamBId: string,
 ): Promise<BettingLine | null> {
-  if (process.env.DATA_MODE !== 'live') {
-    // Return mock line keyed by sorted team IDs
-    const key = [teamAName.toLowerCase(), teamBName.toLowerCase()].sort().join('-');
-    // Try to find a mock line that contains both team names
-    const mockEntry = Object.entries(MOCK_BETTING_LINES).find(([k]) =>
-      k.includes(teamAName.toLowerCase().slice(0, 5)) ||
-      k.includes(teamBName.toLowerCase().slice(0, 5))
-    );
-    if (mockEntry) return mockEntry[1];
 
-    // Generate a plausible mock line
+  // ── MOCK MODE ─────────────────────────────────────────────
+  if (process.env.DATA_MODE !== 'live') {
+    // Look up by sorted team IDs — this is what mock-data.ts keys use
+    const key = [teamAId, teamBId].sort().join('-');
+    const direct = MOCK_BETTING_LINES[key];
+    if (direct) return direct;
+
+    // Try flipped order in case key is reversed
+    const flipped = MOCK_BETTING_LINES[[teamBId, teamAId].join('-')];
+    if (flipped) return flipped;
+
+    // Fallback: scan all keys for a match that contains either team ID
+    const partial = Object.entries(MOCK_BETTING_LINES).find(([k]) =>
+      k.includes(teamAId) && k.includes(teamBId)
+    );
+    if (partial) return partial[1];
+
+    // Last resort: generic placeholder
+    const teamA = MOCK_TEAMS.find(t => t.id === teamAId);
+    const teamB = MOCK_TEAMS.find(t => t.id === teamBId);
+    const seedDiff = (teamA?.seed ?? 8) - (teamB?.seed ?? 8);
     return {
-      spread: -3.5,
-      spreadFav: 'teamA',
-      ml_a: -160,
-      ml_b: 134,
-      total: 145.5,
-      source: 'Mock Data',
-      updated: 'Demo mode',
+      spread:    Math.abs(seedDiff) * 2.5 + 1.5,
+      spreadFav: seedDiff < 0 ? teamAId : teamBId,
+      ml_a:      seedDiff < 0 ? -180 : 150,
+      ml_b:      seedDiff < 0 ? 150  : -180,
+      total:     145.5,
+      source:    'Estimated (Demo)',
+      updated:   'Demo mode',
     };
   }
 
+  // ── LIVE MODE ─────────────────────────────────────────────
   try {
     const games = await fetchAllOdds();
 
-    // Find the game matching both teams
+    // Find the game matching both teams using alias table
     const game = games.find(g =>
-      (g.home_team.toLowerCase().includes(teamAName.toLowerCase()) ||
-       g.away_team.toLowerCase().includes(teamAName.toLowerCase())) &&
-      (g.home_team.toLowerCase().includes(teamBName.toLowerCase()) ||
-       g.away_team.toLowerCase().includes(teamBName.toLowerCase()))
+      (teamMatches(g.home_team, teamAId) || teamMatches(g.away_team, teamAId)) &&
+      (teamMatches(g.home_team, teamBId) || teamMatches(g.away_team, teamBId))
     );
 
     if (!game) {
-      console.warn(`[OddsAPI] No game found for ${teamAName} vs ${teamBName}`);
-      return null;
+      console.warn(`[OddsAPI] No game found for teamAId=${teamAId} teamBId=${teamBId}`);
+      // Fall back to mock line so UI always has something
+      const key = [teamAId, teamBId].sort().join('-');
+      return MOCK_BETTING_LINES[key] ?? null;
     }
 
-    return normalizeGame(game, teamAName, teamBName);
+    const line = normalizeGame(game, teamAId, teamBId);
+    if (!line) {
+      console.warn(`[OddsAPI] normalizeGame returned null for ${teamAId} vs ${teamBId}`);
+      const key = [teamAId, teamBId].sort().join('-');
+      return MOCK_BETTING_LINES[key] ?? null;
+    }
+
+    return line;
+
   } catch (err) {
-    console.error('[OddsAPI] Failed, returning null:', err);
-    return null;
+    console.error('[OddsAPI] Live fetch failed:', err);
+    // Graceful fallback to mock
+    const key = [teamAId, teamBId].sort().join('-');
+    return MOCK_BETTING_LINES[key] ?? null;
   }
 }
 
-// ── Get all available NCAAB lines (for Best Edges page) ────────
+// ── Get all available NCAAB lines ─────────────────────────────
 export async function getAllBettingLines(): Promise<Map<string, BettingLine>> {
   const map = new Map<string, BettingLine>();
 
@@ -183,11 +318,12 @@ export async function getAllBettingLines(): Promise<Map<string, BettingLine>> {
   try {
     const games = await fetchAllOdds();
     for (const game of games) {
-      const line = normalizeGame(game, game.home_team, game.away_team);
+      const idA = findTeamId(game.home_team);
+      const idB = findTeamId(game.away_team);
+      if (!idA || !idB) continue;
+      const line = normalizeGame(game, idA, idB);
       if (line) {
-        const key = [game.home_team, game.away_team]
-          .map(n => n.toLowerCase().replace(/\s+/g, '').slice(0, 8))
-          .sort().join('-');
+        const key = [idA, idB].sort().join('-');
         map.set(key, line);
       }
     }
