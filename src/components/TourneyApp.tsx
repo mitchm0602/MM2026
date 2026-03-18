@@ -2577,11 +2577,39 @@ export default function TourneyApp() {
                 </div>
               </div>
 
-              {/* Tabs */}
-              <div className="tabs">
-                {([['stats','📊 Stats'],['charts','📈 Charts'],['ai','🤖 AI Analysis'],['edge','⚡ Edge Report'],['chat','💬 Chat']] as [Tab,string][]).map(([id, label]) => (
-                  <button key={id} className={`tab${tab === id ? ' active' : ''}`} onClick={() => setTab(id)}>{label}</button>
-                ))}
+              {/* Chat shortcut pill — always visible, jumps straight to Chat tab */}
+              <button
+                onClick={() => setTab('chat')}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  width: '100%', marginBottom: 12,
+                  background: tab === 'chat'
+                    ? 'rgba(79,126,255,0.15)'
+                    : 'var(--bg3)',
+                  border: `1px solid ${tab === 'chat' ? 'var(--accent)' : 'var(--border)'}`,
+                  borderRadius: 12, padding: '12px 16px',
+                  cursor: 'pointer', textAlign: 'left',
+                  transition: 'background 0.15s, border-color 0.15s',
+                }}>
+                <span style={{ fontSize: 22 }}>💬</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>
+                    Ask the AI Betting Assistant
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 2 }}>
+                    First half total · live betting · props · line movement analysis
+                  </div>
+                </div>
+                <span style={{ fontSize: 18, color: 'var(--accent)' }}>→</span>
+              </button>
+
+              {/* Tabs — horizontally scrollable on mobile so all 5 always show */}
+              <div style={{ overflowX:'auto', WebkitOverflowScrolling:'touch', marginBottom:0 }}>
+                <div className="tabs" style={{ minWidth:'max-content' }}>
+                  {([['stats','📊 Stats'],['charts','📈 Charts'],['ai','🤖 AI Analysis'],['edge','⚡ Edge'],['chat','💬 Chat']] as [Tab,string][]).map(([id, label]) => (
+                    <button key={id} className={`tab${tab === id ? ' active' : ''}`} onClick={() => setTab(id)}>{label}</button>
+                  ))}
+                </div>
               </div>
 
               {tab === 'stats'  && <StatsTab  tA={analysis.tA} tB={analysis.tB} />}
