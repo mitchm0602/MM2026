@@ -982,7 +982,7 @@ function TourneyBoard({ teams, onLoadMatchup }: {
   const [showOnlyEdge,  setShowOnlyEdge]  = useState(false);
   const [showOnlySharp, setShowOnlySharp] = useState(false);
   const [showOnlyUpset, setShowOnlyUpset] = useState(false);
-  const [viewMode,      setViewMode]      = useState<'table' | 'schedule'>('table');
+  const [viewMode,      setViewMode]      = useState<'table' | 'schedule'>('schedule');
   const [results,       setResults]       = useState<Record<string, GameResult>>({});
   const [showResultModal, setShowResultModal] = useState<string | null>(null);
   const [resultInput,  setResultInput]    = useState({ tAScore:'', tBScore:'' });
