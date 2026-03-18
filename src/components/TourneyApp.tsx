@@ -9,7 +9,7 @@ import { MOCK_TEAMS, MOCK_BETTING_LINES } from '@/lib/mock-data';
 import MatchupCharts from '@/components/charts/MatchupCharts';
 
 type Page = 'compare' | 'history' | 'edge' | 'settings';
-type Tab  = 'stats' | 'charts' | 'ai' | 'edge';
+type Tab  = 'stats' | 'charts' | 'ai' | 'edge' | 'chat';
 
 // ─── Team Dropdown ────────────────────────────────────────────
 function TeamDropdown({ which, teams, selected, other, onSelect }: {
@@ -1901,6 +1901,301 @@ function TourneyBoard({ teams, onLoadMatchup }: {
   );
 }
 
+
+// ─── Betting Chat Component ───────────────────────────────────
+// Pre-loads all matchup analysis into the LLM context so users
+// can ask natural betting questions without re-explaining the game.
+
+interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+function BettingChat({ a }: { a: MatchupAnalysis }) {
+  const [messages,    setMessages]    = useState<ChatMessage[]>([]);
+  const [input,       setInput]       = useState('');
+  const [loading,     setLoading]     = useState(false);
+  const [error,       setError]       = useState('');
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to latest message
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, loading]);
+
+  // Build a rich system prompt from the live analysis object
+  const buildSystemPrompt = (): string => {
+    const favTeam  = a.lines.spreadFav === a.tA.id ? a.tA : a.tB;
+    const dogTeam  = a.lines.spreadFav === a.tA.id ? a.tB : a.tA;
+    const halfTotal = (a.projTotal / 2).toFixed(1);
+    const halfA     = (a.projA / 2).toFixed(1);
+    const halfB     = (a.projB / 2).toFixed(1);
+
+    return `You are TourneyEdge AI, a sharp sports betting analyst specializing in NCAA Tournament wagering. You have deep knowledge of game theory, line movement, pace-adjusted efficiency metrics, and tournament betting patterns.
+
+You are analyzing the following matchup. Use this data to answer the user's questions precisely and confidently.
+
+═══ MATCHUP DATA ═══
+${a.tA.name} (#${a.tA.seed} ${a.tA.conf}) vs ${a.tB.name} (#${a.tB.seed} ${a.tB.conf})
+
+BETTING LINES (${a.lines.source}):
+- Spread: ${favTeam.name} -${a.lines.spread} (opened ${a.lines.openSpread ?? a.lines.spread})
+- Full game O/U: ${a.lines.total} (opened ${a.lines.openTotal ?? a.lines.total})
+- Moneyline: ${a.tA.name} ${a.lines.ml_a > 0 ? '+' : ''}${a.lines.ml_a} / ${a.tB.name} ${a.lines.ml_b > 0 ? '+' : ''}${a.lines.ml_b}
+
+MODEL PROJECTIONS:
+- Projected score: ${a.tA.name} ${Math.round(a.projA)} – ${a.tB.name} ${Math.round(a.projB)}
+- Projected total: ${a.projTotal.toFixed(1)} (market: ${a.lines.total}, edge: ${a.totalEdge > 0 ? '+' : ''}${a.totalEdge.toFixed(1)})
+- Projected margin: ${a.projMargin > 0 ? a.tA.name : a.tB.name} by ${Math.abs(a.projMargin).toFixed(1)}
+- Spread edge: ${a.spreadEdge > 0 ? '+' : ''}${a.spreadEdge.toFixed(1)} (positive = model likes ${a.tA.name} to cover)
+- Cover probability: ${Math.round(a.coverProb * 100)}% for ${a.pickCover}
+- Confidence: ${a.confidence}/10
+
+HALF-TIME ESTIMATES (first-half projections based on pace/efficiency split):
+- ${a.tA.name} first-half projection: ~${halfA} pts
+- ${a.tB.name} first-half projection: ~${halfB} pts
+- Combined first-half total projection: ~${halfTotal} pts
+- Note: First halves typically run 47-52% of the full-game total in college basketball
+
+EFFICIENCY METRICS:
+- ${a.tA.name}: AdjOE ${a.tA.offEff.toFixed(1)}, AdjDE ${a.tA.defEff.toFixed(1)}, Tempo ${a.tA.tempo.toFixed(1)} poss/40
+- ${a.tB.name}: AdjOE ${a.tB.offEff.toFixed(1)}, AdjDE ${a.tB.defEff.toFixed(1)}, Tempo ${a.tB.tempo.toFixed(1)} poss/40
+- Pace: ${((a.tA.tempo + a.tB.tempo) / 2).toFixed(1)} projected possessions
+- Volatility: ${a.volatility}
+
+FOUR FACTORS:
+- ${a.tA.name}: eFG% ${a.tA.efgPct}%, TOV% ${a.tA.tovPct}%, ORB% ${a.tA.orbPct}%, FTr ${a.tA.ftr}, 3PT% ${a.tA.threePct}%, FT% ${a.tA.ftPct}%
+- ${a.tB.name}: eFG% ${a.tB.efgPct}%, TOV% ${a.tB.tovPct}%, ORB% ${a.tB.orbPct}%, FTr ${a.tB.ftr}, 3PT% ${a.tB.threePct}%, FT% ${a.tB.ftPct}%
+
+FORM:
+- ${a.tA.name}: ${a.tA.record} overall, ${a.tA.ats} ATS, ${a.tA.last10} last 10, ${a.tA.neutralRec} neutral site
+- ${a.tB.name}: ${a.tB.record} overall, ${a.tB.ats} ATS, ${a.tB.last10} last 10, ${a.tB.neutralRec} neutral site
+
+LINE MOVEMENT:
+- Spread moved ${a.lines.openSpread !== undefined ? Math.abs(a.lines.spread - a.lines.openSpread).toFixed(1) + ' pts from open' : 'unknown'}
+- Total moved ${a.lines.openTotal !== undefined ? Math.abs(a.lines.total - a.lines.openTotal).toFixed(1) + ' pts from open' : 'unknown'}
+
+MODEL ANALYSIS:
+- Pick to cover: ${a.pickCover}
+- O/U lean: ${a.ouLean}
+- Key reasons: ${a.reasons.slice(0, 3).join(' | ')}
+- Risk factors: ${a.risks.slice(0, 2).join(' | ')}
+
+═══ YOUR ROLE ═══
+Answer betting questions directly and concisely. When asked about specific bets (first half totals, spreads, alternate lines, live betting, player props context), give a clear lean (Yes/No/Pass) followed by 2-3 sharp reasons drawn from the data above.
+
+For first-half totals specifically: Use the half-time estimates above. College basketball first halves typically have slightly lower pace than second halves. If the first-half total given by the user differs significantly from the model's projection, analyze the gap.
+
+Always end with: confidence level (High/Medium/Low) and a one-sentence bottom line.
+
+You are NOT providing financial advice. Always note this briefly but don't belabor it.`;
+  };
+
+  const sendMessage = async () => {
+    const text = input.trim();
+    if (!text || loading) return;
+
+    const userMsg: ChatMessage = { role: 'user', content: text };
+    const newMessages = [...messages, userMsg];
+    setMessages(newMessages);
+    setInput('');
+    setLoading(true);
+    setError('');
+
+    try {
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 1000,
+          system: buildSystemPrompt(),
+          messages: newMessages.map(m => ({ role: m.role, content: m.content })),
+        }),
+      });
+
+      const data = await response.json();
+      const reply = data.content?.[0]?.text ?? 'Sorry, no response received.';
+      setMessages(prev => [...prev, { role: 'assistant', content: reply }]);
+    } catch {
+      setError('Connection error — check your network and try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleKey = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  };
+
+  // Suggested starter questions
+  const suggestions = [
+    `Is the first half over a good bet for this game?`,
+    `Should I bet ${a.pickCover}?`,
+    `What does the line movement tell us?`,
+    `Is the ${a.ouLean.split(' (')[0]} the right play?`,
+    `Any live betting angles to watch for?`,
+  ];
+
+  return (
+    <div style={{ display:'flex', flexDirection:'column', height:'520px',
+      background:'var(--bg2)', border:'1px solid var(--border)',
+      borderRadius:'var(--card-radius)', overflow:'hidden' }}>
+
+      {/* Header */}
+      <div style={{ padding:'14px 16px', borderBottom:'1px solid var(--border)',
+        background:'var(--bg3)', display:'flex', alignItems:'center', gap:10 }}>
+        <span style={{ fontSize:20 }}>💬</span>
+        <div>
+          <div style={{ fontSize:14, fontWeight:700 }}>Betting Chat</div>
+          <div style={{ fontSize:11, color:'var(--text3)' }}>
+            Ask about {a.tA.name} vs {a.tB.name} — first half, props, live betting, anything
+          </div>
+        </div>
+        <span style={{ marginLeft:'auto', fontSize:10, padding:'3px 8px',
+          background:'rgba(34,201,122,0.12)', color:'var(--green)',
+          borderRadius:10, border:'1px solid rgba(34,201,122,0.25)', fontWeight:600 }}>
+          Context loaded ✓
+        </span>
+      </div>
+
+      {/* Messages */}
+      <div style={{ flex:1, overflowY:'auto', padding:'16px',
+        display:'flex', flexDirection:'column', gap:12 }}>
+
+        {/* Empty state with suggestions */}
+        {messages.length === 0 && (
+          <div>
+            <div style={{ fontSize:13, color:'var(--text3)', marginBottom:12, textAlign:'center' }}>
+              I have all the stats for this matchup loaded. Ask me anything about the betting angles.
+            </div>
+            <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+              {suggestions.map((s, i) => (
+                <button key={i} onClick={() => setInput(s)}
+                  style={{ background:'var(--bg3)', border:'1px solid var(--border)',
+                    borderRadius:8, padding:'9px 12px', fontSize:12,
+                    color:'var(--text2)', cursor:'pointer', textAlign:'left',
+                    transition:'border-color 0.15s' }}>
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Chat messages */}
+        {messages.map((m, i) => (
+          <div key={i} style={{
+            display:'flex',
+            justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start',
+          }}>
+            {m.role === 'assistant' && (
+              <div style={{ width:28, height:28, borderRadius:'50%', flexShrink:0,
+                background:'var(--accent)', display:'flex', alignItems:'center',
+                justifyContent:'center', fontSize:14, marginRight:8, marginTop:2 }}>
+                🏀
+              </div>
+            )}
+            <div style={{
+              maxWidth: '80%',
+              padding: '10px 14px',
+              borderRadius: m.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
+              background: m.role === 'user' ? 'var(--accent)' : 'var(--bg3)',
+              color: m.role === 'user' ? '#fff' : 'var(--text)',
+              fontSize: 13,
+              lineHeight: 1.6,
+              whiteSpace: 'pre-wrap',
+              border: m.role === 'assistant' ? '1px solid var(--border)' : 'none',
+            }}>
+              {m.content}
+            </div>
+          </div>
+        ))}
+
+        {/* Typing indicator */}
+        {loading && (
+          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+            <div style={{ width:28, height:28, borderRadius:'50%',
+              background:'var(--accent)', display:'flex', alignItems:'center',
+              justifyContent:'center', fontSize:14 }}>
+              🏀
+            </div>
+            <div style={{ background:'var(--bg3)', border:'1px solid var(--border)',
+              borderRadius:'16px 16px 16px 4px', padding:'10px 14px',
+              display:'flex', gap:4, alignItems:'center' }}>
+              {[0,1,2].map(i => (
+                <div key={i} style={{
+                  width:7, height:7, borderRadius:'50%',
+                  background:'var(--text3)',
+                  animation: `pulse 1.2s ease-in-out ${i * 0.2}s infinite`,
+                }} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {error && (
+          <div style={{ fontSize:12, color:'var(--red)', textAlign:'center', padding:8 }}>
+            {error}
+          </div>
+        )}
+
+        <div ref={bottomRef} />
+      </div>
+
+      {/* Input */}
+      <div style={{ padding:'12px 16px', borderTop:'1px solid var(--border)',
+        background:'var(--bg3)', display:'flex', gap:8, alignItems:'flex-end' }}>
+        <textarea
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={handleKey}
+          placeholder="Ask about first half total, live betting, props..."
+          rows={1}
+          style={{
+            flex: 1,
+            background: 'var(--bg2)',
+            border: '1px solid var(--border)',
+            borderRadius: 12,
+            padding: '10px 14px',
+            color: 'var(--text)',
+            fontSize: 13,
+            lineHeight: 1.5,
+            resize: 'none',
+            fontFamily: 'var(--font-sans)',
+            maxHeight: 100,
+            overflowY: 'auto',
+          }}
+        />
+        <button onClick={sendMessage} disabled={!input.trim() || loading}
+          style={{
+            background: input.trim() && !loading ? 'var(--accent)' : 'var(--bg2)',
+            border: '1px solid var(--border)',
+            borderRadius: '50%',
+            width: 40, height: 40,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: input.trim() && !loading ? 'pointer' : 'default',
+            fontSize: 16,
+            transition: 'background 0.15s',
+            flexShrink: 0,
+          }}>
+          ↑
+        </button>
+      </div>
+
+      <div style={{ padding:'6px 16px 8px', fontSize:10, color:'var(--text3)',
+        background:'var(--bg3)', textAlign:'center' }}>
+        For informational purposes only · Not financial or betting advice
+      </div>
+    </div>
+  );
+}
+
+
+
 // ─── Main App ─────────────────────────────────────────────────
 export default function TourneyApp() {
   const [page,      setPage]      = useState<Page>('edge');
@@ -2284,7 +2579,7 @@ export default function TourneyApp() {
 
               {/* Tabs */}
               <div className="tabs">
-                {([['stats','📊 Stats'],['charts','📈 Charts'],['ai','🤖 AI Analysis'],['edge','⚡ Edge Report']] as [Tab,string][]).map(([id, label]) => (
+                {([['stats','📊 Stats'],['charts','📈 Charts'],['ai','🤖 AI Analysis'],['edge','⚡ Edge Report'],['chat','💬 Chat']] as [Tab,string][]).map(([id, label]) => (
                   <button key={id} className={`tab${tab === id ? ' active' : ''}`} onClick={() => setTab(id)}>{label}</button>
                 ))}
               </div>
@@ -2293,6 +2588,7 @@ export default function TourneyApp() {
               {tab === 'charts' && <MatchupCharts analysis={analysis} />}
               {tab === 'ai'     && <AITab a={analysis} />}
               {tab === 'edge'   && <EdgeTab a={analysis} />}
+              {tab === 'chat'   && <BettingChat a={analysis} />}
             </>
           )}
         </>
