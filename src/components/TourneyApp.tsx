@@ -555,28 +555,140 @@ function HistoryPage({ history }: { history: HistoryEntry[] }) {
 
 // ─── Tournament Board Page ────────────────────────────────────
 // Explicit row type so TypeScript can resolve spreadEdge etc.
+// Sharp money signal for a single market (spread or total)
+interface SharpSignal {
+  moved:       boolean;    // did the line move at all?
+  magnitude:   number;     // how many points did it move?
+  direction:   'toward' | 'against' | 'none'; // vs the model's pick
+  confirmedBy: 'spread' | 'total' | 'both' | 'none'; // which markets confirm
+  label:       string;     // human-readable description
+  emoji:       string;     // visual indicator
+}
+
 interface BoardRow {
-  date:       string;
-  region:     string;
-  tA:         Team;
-  tB:         Team;
-  line:       BettingLine;
-  favTeam:    Team;
-  dogTeam:    Team;
-  spreadEdge: number;
-  totalEdge:  number;
-  confidence: number;
-  pickCover:  string;
-  ouLean:     string;
-  projA:      number;
-  projB:      number;
-  projTotal:  number;
-  volatility: 'HIGH' | 'MODERATE' | 'LOW';
+  date:         string;
+  region:       string;
+  tA:           Team;
+  tB:           Team;
+  line:         BettingLine;
+  favTeam:      Team;
+  dogTeam:      Team;
+  spreadEdge:   number;
+  totalEdge:    number;
+  confidence:   number;
+  pickCover:    string;
+  ouLean:       string;
+  projA:        number;
+  projB:        number;
+  projTotal:    number;
+  volatility:   'HIGH' | 'MODERATE' | 'LOW';
+  sharpSignal:  SharpSignal;  // sharp money tracker
 }
 // All 32 first-round matchups (+ likely round-2 projections for 3/22)
 // sorted by model edge, total edge, or confidence.
 
-type SortKey = 'spreadEdge' | 'totalEdge' | 'confidence';
+type SortKey = 'spreadEdge' | 'totalEdge' | 'confidence' | 'sharpScore';
+
+// ── Sharp money signal calculator ─────────────────────────────
+// Reads openSpread/openTotal vs current spread/total to determine
+// whether professional money has moved the line toward or away from
+// the model's pick. Returns a structured signal with label + emoji.
+function calcSharpSignal(line: BettingLine, spreadEdge: number, totalEdge: number): SharpSignal {
+  const spreadMoved = line.openSpread !== undefined
+    ? Math.abs(line.spread - line.openSpread)
+    : 0;
+  const totalMoved  = line.openTotal !== undefined
+    ? Math.abs(line.total - line.openTotal)
+    : 0;
+
+  const SPREAD_THRESHOLD = 1.0;  // >= 1 pt spread move = meaningful
+  const TOTAL_THRESHOLD  = 1.5;  // >= 1.5 pts total move = meaningful
+
+  const spreadSharp = spreadMoved >= SPREAD_THRESHOLD;
+  const totalSharp  = totalMoved  >= TOTAL_THRESHOLD;
+
+  if (!spreadSharp && !totalSharp) {
+    return {
+      moved: false, magnitude: 0, direction: 'none',
+      confirmedBy: 'none',
+      label: 'No movement — market stable',
+      emoji: '⚪',
+    };
+  }
+
+  // Spread direction: did the line move toward or away from model pick?
+  // Model likes tA to cover when spreadEdge > 0 (projMargin > marketSpread)
+  // If spread shortened (fav became cheaper) and model likes fav → against model
+  // If spread lengthened (fav got more expensive) and model likes fav → confirms model
+  let spreadDir: 'toward' | 'against' | 'none' = 'none';
+  if (spreadSharp && line.openSpread !== undefined) {
+    const spreadGotBigger = line.spread > line.openSpread; // favorite got more expensive
+    // spreadEdge > 0 means model likes the favorite to cover
+    spreadDir = (spreadGotBigger && spreadEdge > 0) || (!spreadGotBigger && spreadEdge < 0)
+      ? 'toward'
+      : 'against';
+  }
+
+  // Total direction: did the total move toward or away from model lean?
+  // totalEdge > 0 = model likes the over
+  // If total went up and model likes over → confirms model
+  // If total went down and model likes under → confirms model
+  let totalDir: 'toward' | 'against' | 'none' = 'none';
+  if (totalSharp && line.openTotal !== undefined) {
+    const totalWentUp = line.total > line.openTotal;
+    totalDir = (totalWentUp && totalEdge > 0) || (!totalWentUp && totalEdge < 0)
+      ? 'toward'
+      : 'against';
+  }
+
+  // Combine signals
+  const bothMoved = spreadSharp && totalSharp;
+  const bothConfirm = spreadDir === 'toward' && totalDir === 'toward';
+  const eitherConfirm = spreadDir === 'toward' || totalDir === 'toward';
+  const eitherAgainst = spreadDir === 'against' || totalDir === 'against';
+
+  const confirmedBy: SharpSignal['confirmedBy'] =
+    bothMoved && bothConfirm ? 'both'
+    : spreadSharp && spreadDir === 'toward' ? 'spread'
+    : totalSharp  && totalDir  === 'toward' ? 'total'
+    : 'none';
+
+  const direction: SharpSignal['direction'] =
+    bothConfirm           ? 'toward'
+    : eitherConfirm && !eitherAgainst ? 'toward'
+    : eitherAgainst && !eitherConfirm ? 'against'
+    : 'against'; // mixed signals default to caution
+
+  const magnitude = Math.max(spreadMoved, totalMoved);
+
+  // Build human label
+  const parts: string[] = [];
+  if (spreadSharp && line.openSpread !== undefined) {
+    const dir   = line.spread > line.openSpread ? '↑' : '↓';
+    const delta = Math.abs(line.spread - line.openSpread).toFixed(1);
+    parts.push(`Spread ${dir}${delta} (${line.openSpread}→${line.spread})`);
+  }
+  if (totalSharp && line.openTotal !== undefined) {
+    const dir   = line.total > line.openTotal ? '↑' : '↓';
+    const delta = Math.abs(line.total - line.openTotal).toFixed(1);
+    parts.push(`Total ${dir}${delta} (${line.openTotal}→${line.total})`);
+  }
+
+  const emoji =
+    direction === 'toward' && magnitude >= 2 ? '🔵' // strong sharp confirmation
+    : direction === 'toward'                  ? '🟢' // mild sharp confirmation
+    : direction === 'against' && magnitude >= 2? '🔴' // sharp money against model
+    : '🟡'; // mixed/uncertain
+
+  return {
+    moved: true,
+    magnitude,
+    direction,
+    confirmedBy,
+    label: parts.join(' · '),
+    emoji,
+  };
+}
 type DateFilter = 'all' | '3/19' | '3/20' | '3/21' | '3/22';
 
 // Every scheduled matchup March 19-22 with the correct mock-data line key
@@ -631,7 +743,8 @@ function TourneyBoard({ teams, onLoadMatchup }: {
   const [sortKey,    setSortKey]    = useState<SortKey>('spreadEdge');
   const [dateFilter, setDateFilter] = useState<DateFilter>('all');
   const [regionFilter, setRegionFilter] = useState<string>('all');
-  const [showOnlyEdge, setShowOnlyEdge] = useState(false);
+  const [showOnlyEdge,  setShowOnlyEdge]  = useState(false);
+  const [showOnlySharp, setShowOnlySharp] = useState(false);
 
   // Build a lookup map from team ID → Team object
   const teamMap = useMemo(() => {
@@ -661,38 +774,54 @@ function TourneyBoard({ teams, onLoadMatchup }: {
       };
 
       const analysis = generateAnalysis(tA, tB, line);
+      const sharpSignal = calcSharpSignal(line, analysis.spreadEdge, analysis.totalEdge);
       result.push({
-        date:       s.date,
-        region:     s.region,
+        date:        s.date,
+        region:      s.region,
         tA, tB, line,
-        favTeam:    line.spreadFav === tA.id ? tA : tB,
-        dogTeam:    line.spreadFav === tA.id ? tB : tA,
-        spreadEdge: analysis.spreadEdge,
-        totalEdge:  analysis.totalEdge,
-        confidence: analysis.confidence,
-        pickCover:  analysis.pickCover,
-        ouLean:     analysis.ouLean,
-        projA:      analysis.projA,
-        projB:      analysis.projB,
-        projTotal:  analysis.projTotal,
-        volatility: analysis.volatility,
+        favTeam:     line.spreadFav === tA.id ? tA : tB,
+        dogTeam:     line.spreadFav === tA.id ? tB : tA,
+        spreadEdge:  analysis.spreadEdge,
+        totalEdge:   analysis.totalEdge,
+        confidence:  analysis.confidence,
+        pickCover:   analysis.pickCover,
+        ouLean:      analysis.ouLean,
+        projA:       analysis.projA,
+        projB:       analysis.projB,
+        projTotal:   analysis.projTotal,
+        volatility:  analysis.volatility,
+        sharpSignal,
       });
     }
     return result;
   }, [teamMap, dateFilter, regionFilter]);
 
   // Sort
+  // Sharp score: combines magnitude, confirmation, and model edge
+  const sharpScore = (r: BoardRow): number => {
+    if (!r.sharpSignal.moved) return 0;
+    const base      = r.sharpSignal.magnitude * 10;
+    const confirm   = r.sharpSignal.direction === 'toward'  ?  1.5 : 0.3;
+    const bothBonus = r.sharpSignal.confirmedBy === 'both'  ? 1.4  : 1.0;
+    const edgeBonus = (Math.abs(r.spreadEdge) + Math.abs(r.totalEdge)) * 0.5;
+    return base * confirm * bothBonus + edgeBonus;
+  };
+
   const sorted = useMemo((): BoardRow[] => {
     const filtered: BoardRow[] = showOnlyEdge
       ? rows.filter(r => Math.abs(r.spreadEdge) > 3 || Math.abs(r.totalEdge) > 3)
+      : showOnlySharp
+      ? rows.filter(r => r.sharpSignal.moved)
       : rows;
 
     return [...filtered].sort((a: BoardRow, b: BoardRow) => {
       if (sortKey === 'confidence') return b.confidence - a.confidence;
       if (sortKey === 'spreadEdge') return Math.abs(b.spreadEdge) - Math.abs(a.spreadEdge);
-      return Math.abs(b.totalEdge) - Math.abs(a.totalEdge);
+      if (sortKey === 'totalEdge')  return Math.abs(b.totalEdge)  - Math.abs(a.totalEdge);
+      // sharpScore: confirmed moves first, then by magnitude
+      return sharpScore(b) - sharpScore(a);
     });
-  }, [rows, sortKey, showOnlyEdge]);
+  }, [rows, sortKey, showOnlyEdge, showOnlySharp]);
 
   const dates   = ['all', '3/19', '3/20', '3/21', '3/22'];
   const regions = ['all', 'East', 'West', 'Midwest', 'South'];
@@ -731,6 +860,7 @@ function TourneyBoard({ teams, onLoadMatchup }: {
             ['spreadEdge', '📊 Spread Edge'],
             ['totalEdge',  '🎯 Total Edge'],
             ['confidence', '💪 Confidence'],
+            ['sharpScore', '🔵 Sharp Money'],
           ] as [SortKey, string][]).map(([key, label]) => (
             <button key={key} onClick={() => setSortKey(key)}
               style={{ fontSize:12, padding:'6px 12px', borderRadius:6, border:'none', cursor:'pointer',
@@ -775,6 +905,13 @@ function TourneyBoard({ teams, onLoadMatchup }: {
           Best edges only (&gt;3 pts)
         </label>
 
+        {/* Sharp-only toggle */}
+        <label style={{ display:'flex', alignItems:'center', gap:6, fontSize:12, color:'var(--text2)', cursor:'pointer' }}>
+          <button className={`toggle ${showOnlySharp ? 'on' : ''}`}
+            onClick={() => setShowOnlySharp(v => !v)} />
+          Sharp action only
+        </label>
+
         <span style={{ marginLeft:'auto', fontSize:12, color:'var(--text3)' }}>
           {sorted.length} matchup{sorted.length !== 1 ? 's' : ''}
         </span>
@@ -810,12 +947,24 @@ function TourneyBoard({ teams, onLoadMatchup }: {
               color: 'var(--accent)',
             },
             {
-              label: '⚠️ Avoid (Low Conf.)',
+              label: '🔵 Sharp + Model Agree',
               value: (() => {
-                const bot = [...sorted].sort((a,b) => a.confidence - b.confidence)[0];
-                return bot ? `${bot.tA.name} vs ${bot.tB.name} (${bot.confidence})` : '—';
+                const top = [...sorted]
+                  .filter(r => r.sharpSignal.direction === 'toward' && r.sharpSignal.moved)
+                  .sort((a,b) => sharpScore(b) - sharpScore(a))[0];
+                return top ? `${top.pickCover} (${top.sharpSignal.emoji} ${top.sharpSignal.confirmedBy})` : 'No confirmed moves yet';
               })(),
-              color: 'var(--text3)',
+              color: '#4fa3e0',
+            },
+            {
+              label: '⚠️ Sharp vs Model',
+              value: (() => {
+                const top = [...sorted]
+                  .filter(r => r.sharpSignal.direction === 'against' && r.sharpSignal.moved)
+                  .sort((a,b) => b.sharpSignal.magnitude - a.sharpSignal.magnitude)[0];
+                return top ? `${top.tA.name} vs ${top.tB.name} (${top.sharpSignal.label.split('·')[0].trim()})` : 'No conflicts';
+              })(),
+              color: 'var(--red)',
             },
           ].map(({ label, value, color }) => (
             <div key={label} style={{ background:'var(--bg3)', border:'1px solid var(--border)',
@@ -839,6 +988,9 @@ function TourneyBoard({ teams, onLoadMatchup }: {
               <th>Spread</th>
               <th style={{ cursor:'pointer' }} onClick={() => setSortKey('spreadEdge')}>
                 Spread Edge {sortKey === 'spreadEdge' ? '↓' : ''}
+              </th>
+              <th style={{ cursor:'pointer', minWidth:140 }} onClick={() => setSortKey('sharpScore')}>
+                Sharp Signal {sortKey === 'sharpScore' ? '↓' : ''}
               </th>
               <th>Pick to Cover</th>
               <th style={{ cursor:'pointer' }} onClick={() => setSortKey('totalEdge')}>
@@ -916,14 +1068,48 @@ function TourneyBoard({ teams, onLoadMatchup }: {
                         color: edgeColor(r.spreadEdge) }}>
                         {r.spreadEdge > 0 ? '+' : ''}{r.spreadEdge.toFixed(1)}
                       </span>
-                      {spreadAbs >= 6 && <span style={{ fontSize:10, background:'rgba(34,201,122,0.15)',
-                        color:'var(--green)', padding:'2px 6px', borderRadius:10, fontWeight:700 }}>
-                        SHARP
-                      </span>}
                     </div>
                     <div style={{ fontSize:10, color:'var(--text3)', marginTop:2 }}>
                       {spreadAbs >= 6 ? 'Strong edge' : spreadAbs >= 3 ? 'Moderate edge' : 'Thin edge'}
                     </div>
+                  </td>
+
+                  {/* Sharp Money Signal — the new column */}
+                  <td>
+                    {!r.sharpSignal.moved ? (
+                      <div style={{ fontSize:11, color:'var(--text3)' }}>
+                        ⚪ No move
+                      </div>
+                    ) : (
+                      <div>
+                        {/* Main signal line */}
+                        <div style={{ display:'flex', alignItems:'center', gap:5, marginBottom:3 }}>
+                          <span style={{ fontSize:15 }}>{r.sharpSignal.emoji}</span>
+                          <span style={{ fontSize:11, fontWeight:700,
+                            color: r.sharpSignal.direction === 'toward'
+                              ? (r.sharpSignal.confirmedBy === 'both' ? '#4fa3e0' : 'var(--green)')
+                              : 'var(--red)' }}>
+                            {r.sharpSignal.direction === 'toward'
+                              ? r.sharpSignal.confirmedBy === 'both' ? 'SHARP CONFIRMED' : 'SHARP WITH MODEL'
+                              : 'SHARP AGAINST'}
+                          </span>
+                        </div>
+                        {/* Line movement detail */}
+                        <div style={{ fontSize:10, color:'var(--text3)', lineHeight:1.5 }}>
+                          {r.sharpSignal.label.split(' · ').map((part, i) => (
+                            <div key={i}>{part}</div>
+                          ))}
+                        </div>
+                        {/* Confirmation badge */}
+                        {r.sharpSignal.confirmedBy === 'both' && (
+                          <span style={{ fontSize:9, background:'rgba(79,163,224,0.2)',
+                            color:'#4fa3e0', padding:'1px 5px', borderRadius:8,
+                            fontWeight:700, marginTop:3, display:'inline-block' }}>
+                            SPREAD + TOTAL CONFIRM
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </td>
 
                   {/* Pick to cover */}
