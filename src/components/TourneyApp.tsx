@@ -565,6 +565,15 @@ interface SharpSignal {
   emoji:       string;     // visual indicator
 }
 
+interface UpsetAlert {
+  score:   number;             // 1-10 (10 = biggest upset threat)
+  label:   string;             // 'UPSET ALERT' | 'Elevated Risk' | 'Watch This' | 'Chalk'
+  emoji:   string;             // 🚨⚡👀✅
+  reasons: string[];           // up to 4 contributing factors
+  fav:     Team;               // the favored team
+  dog:     Team;               // the underdog / potential upset team
+}
+
 interface BoardRow {
   date:         string;
   region:       string;
@@ -582,12 +591,13 @@ interface BoardRow {
   projB:        number;
   projTotal:    number;
   volatility:   'HIGH' | 'MODERATE' | 'LOW';
-  sharpSignal:  SharpSignal;  // sharp money tracker
+  sharpSignal:  SharpSignal;
+  upsetAlert:   UpsetAlert;    // upset probability score
 }
 // All 32 first-round matchups (+ likely round-2 projections for 3/22)
 // sorted by model edge, total edge, or confidence.
 
-type SortKey = 'spreadEdge' | 'totalEdge' | 'confidence' | 'sharpScore';
+type SortKey = 'spreadEdge' | 'totalEdge' | 'confidence' | 'sharpScore' | 'upsetScore';
 
 // ── Sharp money signal calculator ─────────────────────────────
 // Reads openSpread/openTotal vs current spread/total to determine
@@ -691,6 +701,124 @@ function calcSharpSignal(line: BettingLine, spreadEdge: number, totalEdge: numbe
 }
 type DateFilter = 'all' | '3/19' | '3/20' | '3/21' | '3/22';
 
+// ── Upset Alert Score (1-10) ─────────────────────────────────────────────
+// Scores the underdog's probability of covering or winning outright.
+// Combines spread size, model edge, historical seed data, pace mismatch,
+// volatility, recent form, and ATS record into a single 1-10 score.
+//   1-3: Chalk — take the favorite confidently
+//   4-5: Watch This — underdog has some cover potential
+//   6-7: Elevated Risk — live upset, hedge or fade with caution
+//   8-10: UPSET ALERT — model and historical data both flag this game
+function calcUpsetAlert(
+  tA: Team,
+  tB: Team,
+  line: BettingLine,
+  spreadEdge: number,
+  volatility: 'HIGH' | 'MODERATE' | 'LOW',
+): UpsetAlert {
+  const fav = line.spreadFav === tA.id ? tA : tB;
+  const dog = line.spreadFav === tA.id ? tB : tA;
+
+  let score = 0;
+  const reasons: string[] = [];
+
+  // 1. Spread size — primary driver of raw upset probability
+  if (line.spread <= 3.5) {
+    score += 4;
+    reasons.push(\`Pick-em territory (\${line.spread} pts) — either team can win outright\`);
+  } else if (line.spread <= 7) {
+    score += 3;
+    reasons.push(\`Single-digit spread — \${dog.name} is live to win outright\`);
+  } else if (line.spread <= 12) {
+    score += 2;
+    reasons.push(\`Double-digit spread — upset possible, cover very likely\`);
+  } else if (line.spread <= 20) {
+    score += 1;
+    reasons.push(\`Large spread — low upset probability\`);
+  } else {
+    reasons.push(\`\${fav.name} is heavily favored — standard chalk\`);
+  }
+
+  // 2. Model edge for the underdog
+  // spreadEdge > 0 = model likes the favorite to cover (bad for upset)
+  // spreadEdge < 0 = model sees value for the underdog
+  if (spreadEdge < -4) {
+    score += 3;
+    reasons.push(\`Model projects \${dog.name} wins outright (edge: \${spreadEdge.toFixed(1)} pts)\`);
+  } else if (spreadEdge < -2) {
+    score += 2;
+    reasons.push(\`Model sees \${Math.abs(spreadEdge).toFixed(1)}-pt cover value for \${dog.name}\`);
+  } else if (spreadEdge < 0) {
+    score += 1;
+    reasons.push(\`Model leans \${dog.name} to cover\`);
+  }
+
+  // 3. Historical seed upset rates (first-round only, seeds 5-13)
+  const seedRates: Record<number, number> = {
+    5: 0.50, 6: 0.37, 7: 0.39, 8: 0.49, 9: 0.49,
+    10: 0.39, 11: 0.37, 12: 0.35, 13: 0.21,
+  };
+  const histRate = seedRates[dog.seed];
+  if (histRate !== undefined) {
+    if (histRate >= 0.45) {
+      score += 2;
+      reasons.push(\`Seed #\${dog.seed} wins \${Math.round(histRate * 100)}% of first-round games historically\`);
+    } else if (histRate >= 0.30) {
+      score += 1;
+      reasons.push(\`Seed #\${dog.seed} historical win rate: \${Math.round(histRate * 100)}%\`);
+    }
+  }
+
+  // 4. Pace mismatch — fewer possessions = more variance per possession
+  const paceDiff = Math.abs(tA.tempo - tB.tempo);
+  if (paceDiff > 7) {
+    score += 1;
+    reasons.push(\`\${paceDiff.toFixed(1)} poss/40 pace gap — game flow is unpredictable\`);
+  }
+
+  // 5. Volatility — high-3PT games swing wildly
+  if (volatility === 'HIGH') {
+    score += 1;
+    reasons.push('High 3PT variance — wide range of final scores possible');
+  }
+
+  // 6. Underdog recent form
+  const dogWins = parseInt(dog.last10.split('-')[0] ?? '5');
+  if (dogWins >= 8) {
+    score += 1;
+    reasons.push(\`\${dog.name} is red-hot: \${dog.last10} last 10 games\`);
+  }
+
+  // 7. Underdog ATS discipline
+  const atsParts = dog.ats.split('-').map(Number);
+  const atsW = atsParts[0] ?? 0;
+  const atsL = atsParts[1] ?? 1;
+  const atsPct = atsW / (atsW + atsL);
+  if (atsPct > 0.58) {
+    score += 1;
+    reasons.push(\`\${dog.name} covers \${Math.round(atsPct * 100)}% this season — market undervalues them\`);
+  }
+
+  // Always have at least one reason
+  if (reasons.length === 0) {
+    reasons.push(\`\${fav.name} is dominant — take the chalk with confidence\`);
+  }
+
+  const finalScore = Math.min(10, Math.max(1, score));
+
+  return {
+    score:   finalScore,
+    label:   finalScore >= 8 ? 'UPSET ALERT'    :
+             finalScore >= 6 ? 'Elevated Risk'  :
+             finalScore >= 4 ? 'Watch This'     : 'Chalk',
+    emoji:   finalScore >= 8 ? '🚨' :
+             finalScore >= 6 ? '⚡' :
+             finalScore >= 4 ? '👀' : '✅',
+    reasons: reasons.slice(0, 4),
+    fav, dog,
+  };
+}
+
 // Every scheduled matchup March 19-22 with the correct mock-data line key
 const TOURNAMENT_SCHEDULE: {
   date: string; region: string; tAId: string; tBId: string;
@@ -745,6 +873,7 @@ function TourneyBoard({ teams, onLoadMatchup }: {
   const [regionFilter, setRegionFilter] = useState<string>('all');
   const [showOnlyEdge,  setShowOnlyEdge]  = useState(false);
   const [showOnlySharp, setShowOnlySharp] = useState(false);
+  const [showOnlyUpset, setShowOnlyUpset] = useState(false);
 
   // Build a lookup map from team ID → Team object
   const teamMap = useMemo(() => {
@@ -775,6 +904,7 @@ function TourneyBoard({ teams, onLoadMatchup }: {
 
       const analysis = generateAnalysis(tA, tB, line);
       const sharpSignal = calcSharpSignal(line, analysis.spreadEdge, analysis.totalEdge);
+      const upsetAlert  = calcUpsetAlert(tA, tB, line, analysis.spreadEdge, analysis.volatility);
       result.push({
         date:        s.date,
         region:      s.region,
@@ -791,6 +921,7 @@ function TourneyBoard({ teams, onLoadMatchup }: {
         projTotal:   analysis.projTotal,
         volatility:  analysis.volatility,
         sharpSignal,
+        upsetAlert,
       });
     }
     return result;
@@ -812,16 +943,18 @@ function TourneyBoard({ teams, onLoadMatchup }: {
       ? rows.filter(r => Math.abs(r.spreadEdge) > 3 || Math.abs(r.totalEdge) > 3)
       : showOnlySharp
       ? rows.filter(r => r.sharpSignal.moved)
+      : showOnlyUpset
+      ? rows.filter(r => r.upsetAlert.score >= 6)
       : rows;
 
     return [...filtered].sort((a: BoardRow, b: BoardRow) => {
       if (sortKey === 'confidence') return b.confidence - a.confidence;
       if (sortKey === 'spreadEdge') return Math.abs(b.spreadEdge) - Math.abs(a.spreadEdge);
       if (sortKey === 'totalEdge')  return Math.abs(b.totalEdge)  - Math.abs(a.totalEdge);
-      // sharpScore: confirmed moves first, then by magnitude
+      if (sortKey === 'upsetScore') return b.upsetAlert.score - a.upsetAlert.score;
       return sharpScore(b) - sharpScore(a);
     });
-  }, [rows, sortKey, showOnlyEdge, showOnlySharp]);
+  }, [rows, sortKey, showOnlyEdge, showOnlySharp, showOnlyUpset]);
 
   const dates   = ['all', '3/19', '3/20', '3/21', '3/22'];
   const regions = ['all', 'East', 'West', 'Midwest', 'South'];
@@ -861,6 +994,7 @@ function TourneyBoard({ teams, onLoadMatchup }: {
             ['totalEdge',  '🎯 Total Edge'],
             ['confidence', '💪 Confidence'],
             ['sharpScore', '🔵 Sharp Money'],
+            ['upsetScore', '🚨 Upset Risk'],
           ] as [SortKey, string][]).map(([key, label]) => (
             <button key={key} onClick={() => setSortKey(key)}
               style={{ fontSize:12, padding:'6px 12px', borderRadius:6, border:'none', cursor:'pointer',
@@ -910,6 +1044,13 @@ function TourneyBoard({ teams, onLoadMatchup }: {
           <button className={`toggle ${showOnlySharp ? 'on' : ''}`}
             onClick={() => setShowOnlySharp(v => !v)} />
           Sharp action only
+        </label>
+
+        {/* Upset-only toggle */}
+        <label style={{ display:'flex', alignItems:'center', gap:6, fontSize:12, color:'var(--text2)', cursor:'pointer' }}>
+          <button className={`toggle ${showOnlyUpset ? 'on' : ''}`}
+            onClick={() => setShowOnlyUpset(v => !v)} />
+          Upset risks only (≥6)
         </label>
 
         <span style={{ marginLeft:'auto', fontSize:12, color:'var(--text3)' }}>
@@ -966,6 +1107,16 @@ function TourneyBoard({ teams, onLoadMatchup }: {
               })(),
               color: 'var(--red)',
             },
+            {
+              label: '🚨 Biggest Upset Threat',
+              value: (() => {
+                const top = [...sorted].sort((a,b) => b.upsetAlert.score - a.upsetAlert.score)[0];
+                return top
+                  ? `${top.upsetAlert.dog.name} vs ${top.upsetAlert.fav.name} (${top.upsetAlert.score}/10)`
+                  : '—';
+              })(),
+              color: 'var(--amber)',
+            },
           ].map(({ label, value, color }) => (
             <div key={label} style={{ background:'var(--bg3)', border:'1px solid var(--border)',
               borderRadius:'var(--radius)', padding:'12px 14px' }}>
@@ -999,6 +1150,9 @@ function TourneyBoard({ teams, onLoadMatchup }: {
               <th>O/U Lean</th>
               <th style={{ cursor:'pointer' }} onClick={() => setSortKey('confidence')}>
                 Conf. {sortKey === 'confidence' ? '↓' : ''}
+              </th>
+              <th style={{ cursor:'pointer', minWidth:120 }} onClick={() => setSortKey('upsetScore')}>
+                Upset Risk {sortKey === 'upsetScore' ? '↓' : ''}
               </th>
               <th>Action</th>
             </tr>
@@ -1152,6 +1306,40 @@ function TourneyBoard({ teams, onLoadMatchup }: {
                         color: confColor(r.confidence) }}>
                         {confLabel(r.confidence)}
                       </span>
+                    </div>
+                  </td>
+
+                  {/* Upset Alert */}
+                  <td>
+                    <div style={{ display:'flex', alignItems:'center', gap:5, marginBottom:3 }}>
+                      <span style={{ fontSize:16 }}>{r.upsetAlert.emoji}</span>
+                      <span style={{ fontSize:11, fontWeight:700,
+                        color: r.upsetAlert.score >= 8 ? 'var(--red)'
+                          : r.upsetAlert.score >= 6 ? 'var(--amber)'
+                          : r.upsetAlert.score >= 4 ? 'var(--text2)'
+                          : 'var(--green)' }}>
+                        {r.upsetAlert.label}
+                      </span>
+                      <span style={{ fontSize:10, color:'var(--text3)', marginLeft:2 }}>
+                        {r.upsetAlert.score}/10
+                      </span>
+                    </div>
+                    {/* Mini progress bar */}
+                    <div style={{ height:3, borderRadius:2, overflow:'hidden',
+                      background:'var(--border)', width:80, marginBottom:4 }}>
+                      <div style={{
+                        height:'100%', borderRadius:2,
+                        width: `${r.upsetAlert.score * 10}%`,
+                        background: r.upsetAlert.score >= 8 ? 'var(--red)'
+                          : r.upsetAlert.score >= 6 ? 'var(--amber)'
+                          : r.upsetAlert.score >= 4 ? 'var(--text2)'
+                          : 'var(--green)',
+                      }} />
+                    </div>
+                    {/* Top reason */}
+                    <div style={{ fontSize:10, color:'var(--text3)', lineHeight:1.4,
+                      maxWidth:140 }}>
+                      {r.upsetAlert.dog.name} +{r.line.spread} · {r.upsetAlert.reasons[0]?.substring(0, 38)}{(r.upsetAlert.reasons[0]?.length ?? 0) > 38 ? '…' : ''}
                     </div>
                   </td>
 
