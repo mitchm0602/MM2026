@@ -595,6 +595,10 @@ interface GameResult {
 
 interface BoardRow {
   date:         string;
+  day:          string;
+  time:         string;
+  tv:           string;
+  isProjected:  boolean;
   region:       string;
   tA:           Team;
   tB:           Team;
@@ -720,7 +724,7 @@ function calcSharpSignal(line: BettingLine, spreadEdge: number, totalEdge: numbe
     emoji,
   };
 }
-type DateFilter = 'all' | '3/19' | '3/20' | '3/21' | '3/22';
+type DateFilter = 'all' | '3/17' | '3/18' | '3/19' | '3/20' | '3/21' | '3/22';
 
 // ── Value Score (1-100) ──────────────────────────────────────────
 // Single composite number that weights spread edge, total edge,
@@ -897,49 +901,75 @@ function calcUpsetAlert(
   };
 }
 
-// Every scheduled matchup March 19-22 with the correct mock-data line key
+// Every first-round matchup with verified tip times from Yahoo Sports (March 16, 2026)
+// 3/21 and 3/22 are Second Round — matchups TBD after first-round results
+// We show projected likely matchups for 3/21-3/22 but label them as projections
 const TOURNAMENT_SCHEDULE: {
-  date: string; region: string; tAId: string; tBId: string;
+  date: string; day: string; time: string; tv: string;
+  region: string; tAId: string; tBId: string; isProjected?: boolean;
 }[] = [
-  // ── March 19 ──────────────────────────────────────────────
-  { date:'3/19', region:'East',    tAId:'duke',         tBId:'siena'         },
-  { date:'3/19', region:'East',    tAId:'furman',       tBId:'uconn'         },
-  { date:'3/19', region:'East',    tAId:'louisville',   tBId:'southflorida'  },
-  { date:'3/19', region:'East',    tAId:'ohiostate',    tBId:'tcu'           },
-  { date:'3/19', region:'West',    tAId:'arizona',      tBId:'liu'           },
-  { date:'3/19', region:'West',    tAId:'miamifl',      tBId:'missouri'      },
-  { date:'3/19', region:'West',    tAId:'utahst',       tBId:'villanova'     },
-  // ── March 20 ──────────────────────────────────────────────
-  { date:'3/20', region:'East',    tAId:'michiganst',   tBId:'northdakotast' },
-  { date:'3/20', region:'East',    tAId:'calbaptist',   tBId:'kansas'        },
-  { date:'3/20', region:'East',    tAId:'northerniowa', tBId:'stjohns'       },
-  { date:'3/20', region:'East',    tAId:'ucf',          tBId:'ucla'          },
-  { date:'3/20', region:'West',    tAId:'purdue',       tBId:'queens'        },
-  { date:'3/20', region:'West',    tAId:'gonzaga',      tBId:'kennesawst'    },
-  { date:'3/20', region:'West',    tAId:'highpoint',    tBId:'wisconsin'     },
-  { date:'3/20', region:'West',    tAId:'arkansas',     tBId:'hawaii'        },
-  { date:'3/20', region:'South',   tAId:'florida',      tBId:'prairierview'  },
-  { date:'3/20', region:'South',   tAId:'houston',      tBId:'idaho'         },
-  { date:'3/20', region:'South',   tAId:'nebraska',     tBId:'troy'          },
-  { date:'3/20', region:'South',   tAId:'northcarolina',tBId:'vcu'           },
-  { date:'3/20', region:'Midwest', tAId:'michigan',     tBId:'umbc'          },
-  { date:'3/20', region:'Midwest', tAId:'iowast',       tBId:'tennesseest'   },
-  { date:'3/20', region:'Midwest', tAId:'texastech',    tBId:'akron'         },
-  { date:'3/20', region:'Midwest', tAId:'georgia',      tBId:'stlouis'       },
-  // ── March 21 ──────────────────────────────────────────────
-  { date:'3/21', region:'South',   tAId:'illinois',     tBId:'penn'          },
-  { date:'3/21', region:'South',   tAId:'mcneese',      tBId:'vanderbilt'    },
-  { date:'3/21', region:'South',   tAId:'saintmarys',   tBId:'texasam'       },
-  { date:'3/21', region:'South',   tAId:'clemson',      tBId:'iowa'          },
-  { date:'3/21', region:'Midwest', tAId:'virginia',     tBId:'wrightstate'   },
-  { date:'3/21', region:'Midwest', tAId:'alabama',      tBId:'hofstra'       },
-  { date:'3/21', region:'Midwest', tAId:'kentucky',     tBId:'santaclara'    },
-  { date:'3/21', region:'Midwest', tAId:'tennessee',    tBId:'smu'           },
-  // ── March 22 (Round of 32 — projected top matchups) ───────
-  { date:'3/22', region:'East',    tAId:'duke',         tBId:'uconn'         },
-  { date:'3/22', region:'West',    tAId:'arizona',      tBId:'purdue'        },
-  { date:'3/22', region:'Midwest', tAId:'michigan',     tBId:'iowast'        },
-  { date:'3/22', region:'South',   tAId:'florida',      tBId:'houston'       },
+  // ── FIRST FOUR (already played) ──────────────────────────
+  { date:'3/17', day:'Tuesday',  time:'6:40 PM',  tv:'TruTV', region:'Midwest', tAId:'umbc',        tBId:'howard'        },
+  { date:'3/17', day:'Tuesday',  time:'9:10 PM',  tv:'TruTV', region:'West',    tAId:'ncstate',     tBId:'texas'         },
+  { date:'3/18', day:'Wednesday',time:'6:40 PM',  tv:'TruTV', region:'South',   tAId:'prairierview',tBId:'lehigh'        },
+  { date:'3/18', day:'Wednesday',time:'9:10 PM',  tv:'TruTV', region:'Midwest', tAId:'miamioh',     tBId:'smu'           },
+
+  // ── THURSDAY MARCH 19 — First Round ──────────────────────
+  { date:'3/19', day:'Thursday', time:'12:15 PM', tv:'CBS',   region:'East',    tAId:'ohiostate',   tBId:'tcu'           },
+  { date:'3/19', day:'Thursday', time:'12:40 PM', tv:'TruTV', region:'South',   tAId:'nebraska',    tBId:'troy'          },
+  { date:'3/19', day:'Thursday', time:'1:30 PM',  tv:'TNT',   region:'East',    tAId:'louisville',  tBId:'southflorida'  },
+  { date:'3/19', day:'Thursday', time:'1:50 PM',  tv:'TBS',   region:'West',    tAId:'highpoint',   tBId:'wisconsin'     },
+  { date:'3/19', day:'Thursday', time:'2:50 PM',  tv:'CBS',   region:'East',    tAId:'duke',        tBId:'siena'         },
+  { date:'3/19', day:'Thursday', time:'3:15 PM',  tv:'TruTV', region:'South',   tAId:'mcneese',     tBId:'vanderbilt'    },
+  { date:'3/19', day:'Thursday', time:'4:05 PM',  tv:'TNT',   region:'East',    tAId:'michiganst',  tBId:'northdakotast' },
+  { date:'3/19', day:'Thursday', time:'4:25 PM',  tv:'TBS',   region:'West',    tAId:'arkansas',    tBId:'hawaii'        },
+  { date:'3/19', day:'Thursday', time:'6:50 PM',  tv:'TNT',   region:'South',   tAId:'northcarolina',tBId:'vcu'          },
+  { date:'3/19', day:'Thursday', time:'7:10 PM',  tv:'CBS',   region:'Midwest', tAId:'michigan',    tBId:'umbc'          },
+  { date:'3/19', day:'Thursday', time:'7:25 PM',  tv:'TBS',   region:'West',    tAId:'byu',         tBId:'texas'         },
+  { date:'3/19', day:'Thursday', time:'7:35 PM',  tv:'TruTV', region:'South',   tAId:'saintmarys',  tBId:'texasam'       },
+  { date:'3/19', day:'Thursday', time:'9:25 PM',  tv:'TNT',   region:'South',   tAId:'illinois',    tBId:'penn'          },
+  { date:'3/19', day:'Thursday', time:'9:45 PM',  tv:'CBS',   region:'Midwest', tAId:'georgia',     tBId:'stlouis'       },
+  { date:'3/19', day:'Thursday', time:'10:00 PM', tv:'TBS',   region:'West',    tAId:'gonzaga',     tBId:'kennesawst'    },
+  { date:'3/19', day:'Thursday', time:'10:10 PM', tv:'TruTV', region:'South',   tAId:'houston',     tBId:'idaho'         },
+
+  // ── FRIDAY MARCH 20 — First Round ────────────────────────
+  { date:'3/20', day:'Friday',   time:'12:15 PM', tv:'CBS',   region:'Midwest', tAId:'kentucky',    tBId:'santaclara'    },
+  { date:'3/20', day:'Friday',   time:'12:40 PM', tv:'TruTV', region:'Midwest', tAId:'texastech',   tBId:'akron'         },
+  { date:'3/20', day:'Friday',   time:'1:35 PM',  tv:'TNT',   region:'West',    tAId:'arizona',     tBId:'liu'           },
+  { date:'3/20', day:'Friday',   time:'1:50 PM',  tv:'TBS',   region:'Midwest', tAId:'virginia',    tBId:'wrightstate'   },
+  { date:'3/20', day:'Friday',   time:'2:50 PM',  tv:'CBS',   region:'Midwest', tAId:'iowast',      tBId:'tennesseest'   },
+  { date:'3/20', day:'Friday',   time:'3:15 PM',  tv:'TruTV', region:'Midwest', tAId:'alabama',     tBId:'hofstra'       },
+  { date:'3/20', day:'Friday',   time:'4:10 PM',  tv:'TNT',   region:'West',    tAId:'villanova',   tBId:'utahst'        },
+  { date:'3/20', day:'Friday',   time:'4:25 PM',  tv:'TBS',   region:'Midwest', tAId:'tennessee',   tBId:'smu'           },
+  { date:'3/20', day:'Friday',   time:'6:50 PM',  tv:'TNT',   region:'South',   tAId:'clemson',     tBId:'iowa'          },
+  { date:'3/20', day:'Friday',   time:'7:10 PM',  tv:'CBS',   region:'East',    tAId:'northerniowa',tBId:'stjohns'       },
+  { date:'3/20', day:'Friday',   time:'7:25 PM',  tv:'TBS',   region:'East',    tAId:'ucf',         tBId:'ucla'          },
+  { date:'3/20', day:'Friday',   time:'7:35 PM',  tv:'TruTV', region:'West',    tAId:'purdue',      tBId:'queens'        },
+  { date:'3/20', day:'Friday',   time:'9:25 PM',  tv:'TNT',   region:'South',   tAId:'florida',     tBId:'prairierview'  },
+  { date:'3/20', day:'Friday',   time:'9:45 PM',  tv:'CBS',   region:'East',    tAId:'calbaptist',  tBId:'kansas'        },
+  { date:'3/20', day:'Friday',   time:'10:00 PM', tv:'TBS',   region:'East',    tAId:'furman',      tBId:'uconn'         },
+  { date:'3/20', day:'Friday',   time:'10:10 PM', tv:'TruTV', region:'West',    tAId:'miamifl',     tBId:'missouri'      },
+
+  // ── SATURDAY MARCH 21 — Second Round (matchups TBD) ──────
+  // These are projected likely matchups based on seedings — labeled as projections
+  { date:'3/21', day:'Saturday', time:'TBD', tv:'TBD', region:'East',    tAId:'duke',      tBId:'uconn',     isProjected:true },
+  { date:'3/21', day:'Saturday', time:'TBD', tv:'TBD', region:'East',    tAId:'michiganst',tBId:'kansas',    isProjected:true },
+  { date:'3/21', day:'Saturday', time:'TBD', tv:'TBD', region:'West',    tAId:'arizona',   tBId:'gonzaga',   isProjected:true },
+  { date:'3/21', day:'Saturday', time:'TBD', tv:'TBD', region:'West',    tAId:'purdue',    tBId:'arkansas',  isProjected:true },
+  { date:'3/21', day:'Saturday', time:'TBD', tv:'TBD', region:'South',   tAId:'florida',   tBId:'nebraska',  isProjected:true },
+  { date:'3/21', day:'Saturday', time:'TBD', tv:'TBD', region:'South',   tAId:'houston',   tBId:'vanderbilt',isProjected:true },
+  { date:'3/21', day:'Saturday', time:'TBD', tv:'TBD', region:'Midwest', tAId:'michigan',  tBId:'iowast',    isProjected:true },
+  { date:'3/21', day:'Saturday', time:'TBD', tv:'TBD', region:'Midwest', tAId:'virginia',  tBId:'alabama',   isProjected:true },
+
+  // ── SUNDAY MARCH 22 — Second Round (matchups TBD) ────────
+  { date:'3/22', day:'Sunday',   time:'TBD', tv:'TBD', region:'East',    tAId:'louisville',tBId:'stjohns',   isProjected:true },
+  { date:'3/22', day:'Sunday',   time:'TBD', tv:'TBD', region:'East',    tAId:'ohiostate', tBId:'ucla',      isProjected:true },
+  { date:'3/22', day:'Sunday',   time:'TBD', tv:'TBD', region:'West',    tAId:'wisconsin', tBId:'byu',       isProjected:true },
+  { date:'3/22', day:'Sunday',   time:'TBD', tv:'TBD', region:'West',    tAId:'miamifl',   tBId:'utahst',    isProjected:true },
+  { date:'3/22', day:'Sunday',   time:'TBD', tv:'TBD', region:'South',   tAId:'illinois',  tBId:'northcarolina',isProjected:true },
+  { date:'3/22', day:'Sunday',   time:'TBD', tv:'TBD', region:'South',   tAId:'saintmarys',tBId:'clemson',   isProjected:true },
+  { date:'3/22', day:'Sunday',   time:'TBD', tv:'TBD', region:'Midwest', tAId:'tennessee', tBId:'georgia',   isProjected:true },
+  { date:'3/22', day:'Sunday',   time:'TBD', tv:'TBD', region:'Midwest', tAId:'kentucky',  tBId:'texastech', isProjected:true },
 ];
 
 function TourneyBoard({ teams, onLoadMatchup }: {
@@ -991,6 +1021,10 @@ function TourneyBoard({ teams, onLoadMatchup }: {
       const matchupKey  = [s.tAId, s.tBId].sort().join('-') + '-' + s.date;
       result.push({
         date:        s.date,
+        day:         s.day,
+        time:        s.time,
+        tv:          s.tv,
+        isProjected: s.isProjected ?? false,
         region:      s.region,
         tA, tB, line,
         favTeam:     line.spreadFav === tA.id ? tA : tB,
@@ -1043,7 +1077,7 @@ function TourneyBoard({ teams, onLoadMatchup }: {
     });
   }, [rows, sortKey, showOnlyEdge, showOnlySharp, showOnlyUpset]);
 
-  const dates   = ['all', '3/19', '3/20', '3/21', '3/22'];
+  const dates   = ['all', '3/17', '3/18', '3/19', '3/20', '3/21', '3/22'];
   const regions = ['all', 'East', 'West', 'Midwest', 'South'];
 
   const edgeColor = (v: number, threshold = 3) =>
@@ -1311,10 +1345,25 @@ function TourneyBoard({ teams, onLoadMatchup }: {
                     </div>
                   </td>
 
-                  {/* Date + Region */}
-                  <td>
+                  {/* Date + Region + Time */}
+                  <td style={{ minWidth:80 }}>
                     <div style={{ fontSize:13, fontWeight:600 }}>{r.date}</div>
                     <div style={{ fontSize:10, color:'var(--text3)' }}>{r.region}</div>
+                    {r.time !== 'TBD' && (
+                      <div style={{ fontSize:10, color:'var(--text3)', marginTop:2 }}>{r.time}</div>
+                    )}
+                    <div style={{ display:'flex', gap:3, marginTop:2, alignItems:'center' }}>
+                      {r.tv !== 'TBD' && (
+                        <span style={{ fontSize:9, fontWeight:700, padding:'1px 4px',
+                          borderRadius:3, color:'#fff',
+                          background: r.tv === 'CBS' ? '#003087' : r.tv === 'TBS' ? '#005288' : r.tv === 'TNT' ? '#CC0000' : '#7B1FA2' }}>
+                          {r.tv}
+                        </span>
+                      )}
+                      {r.isProjected && (
+                        <span style={{ fontSize:9, color:'var(--amber)' }}>Proj.</span>
+                      )}
+                    </div>
                   </td>
 
                   {/* Matchup */}
@@ -1522,30 +1571,48 @@ function TourneyBoard({ teams, onLoadMatchup }: {
       )}
 
       {/* ── SCHEDULE VIEW ─────────────────────────────────────── */}
-      {viewMode === 'schedule' && sorted.length > 0 && (() => {
+      {viewMode === 'schedule' && (() => {
         const byDate: Record<string, BoardRow[]> = {};
         sorted.forEach(r => {
           if (!byDate[r.date]) byDate[r.date] = [];
           byDate[r.date].push(r);
         });
         const dateLabels: Record<string, string> = {
-          '3/19': 'Thursday March 19',
-          '3/20': 'Friday March 20',
-          '3/21': 'Saturday March 21',
-          '3/22': 'Sunday March 22',
+          '3/17': 'Tuesday March 17 — First Four',
+          '3/18': 'Wednesday March 18 — First Four',
+          '3/19': 'Thursday March 19 — First Round',
+          '3/20': 'Friday March 20 — First Round',
+          '3/21': 'Saturday March 21 — Second Round (Projected)',
+          '3/22': 'Sunday March 22 — Second Round (Projected)',
+        };
+        const tvColors: Record<string, string> = {
+          CBS: '#003087', TBS: '#005288', TNT: '#CC0000', TruTV: '#7B1FA2', TBD: 'var(--text3)',
+        };
+        if (Object.keys(byDate).length === 0) {
+          return (
+            <div style={{ textAlign:'center', padding:40, color:'var(--text3)' }}>
+              No matchups found for the selected filters.
+            </div>
+          );
+        }
+        const sortLabel: Record<string, string> = {
+          valueScore:'Value Score', spreadEdge:'Spread Edge', totalEdge:'O/U Edge',
+          confidence:'Confidence', sharpScore:'Sharp Money', upsetScore:'Upset Risk',
         };
         return (
           <div style={{ marginTop:24 }}>
             {Object.entries(byDate).sort(([a],[b]) => a.localeCompare(b)).map(([date, dayRows]) => (
-              <div key={date} style={{ marginBottom:32 }}>
+              <div key={date} style={{ marginBottom:40 }}>
                 {/* Day header */}
-                <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:12 }}>
-                  <div style={{ fontSize:16, fontWeight:700 }}>
+                <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:14 }}>
+                  <div style={{ fontSize:17, fontWeight:700 }}>
                     📅 {dateLabels[date] ?? date}
                   </div>
                   <div style={{ height:1, flex:1, background:'var(--border)' }} />
-                  <div style={{ fontSize:11, color:'var(--text3)' }}>
-                    {dayRows.length} game{dayRows.length !== 1 ? 's' : ''}
+                  <div style={{ fontSize:11, color:'var(--text3)', display:'flex', gap:8, alignItems:'center' }}>
+                    <span>{dayRows.length} game{dayRows.length !== 1 ? 's' : ''}</span>
+                    <span style={{ opacity:0.4 }}>·</span>
+                    <span>↓ {sortLabel[sortKey] ?? sortKey}</span>
                   </div>
                 </div>
 
@@ -1574,6 +1641,29 @@ function TourneyBoard({ teams, onLoadMatchup }: {
                           <div style={{ fontSize:9, fontWeight:700, color:r.valueScore.color }}>
                             {r.valueScore.grade}
                           </div>
+                        </div>
+
+                        {/* Tip time + TV badge */}
+                        <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:8, marginRight:52 }}>
+                          {r.time !== 'TBD' && (
+                            <span style={{ fontSize:11, fontWeight:600, color:'var(--text2)' }}>
+                              🕐 {r.time}
+                            </span>
+                          )}
+                          {r.tv !== 'TBD' && (
+                            <span style={{ fontSize:10, fontWeight:700, padding:'2px 7px',
+                              borderRadius:4, color:'#fff',
+                              background: tvColors[r.tv] ?? 'var(--text3)' }}>
+                              {r.tv}
+                            </span>
+                          )}
+                          {r.isProjected && (
+                            <span style={{ fontSize:10, color:'var(--amber)',
+                              border:'1px solid rgba(255,179,64,0.4)',
+                              padding:'1px 6px', borderRadius:4 }}>
+                              Projected
+                            </span>
+                          )}
                         </div>
 
                         {/* Teams */}
