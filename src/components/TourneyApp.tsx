@@ -803,18 +803,18 @@ function calcUpsetAlert(
   // 1. Spread size — primary driver of raw upset probability
   if (line.spread <= 3.5) {
     score += 4;
-    reasons.push(\`Pick-em territory (\${line.spread} pts) — either team can win outright\`);
+    reasons.push(`Pick-em territory (${line.spread} pts) — either team can win outright`);
   } else if (line.spread <= 7) {
     score += 3;
-    reasons.push(\`Single-digit spread — \${dog.name} is live to win outright\`);
+    reasons.push(`Single-digit spread — ${dog.name} is live to win outright`);
   } else if (line.spread <= 12) {
     score += 2;
-    reasons.push(\`Double-digit spread — upset possible, cover very likely\`);
+    reasons.push(`Double-digit spread — upset possible, cover very likely`);
   } else if (line.spread <= 20) {
     score += 1;
-    reasons.push(\`Large spread — low upset probability\`);
+    reasons.push(`Large spread — low upset probability`);
   } else {
-    reasons.push(\`\${fav.name} is heavily favored — standard chalk\`);
+    reasons.push(`${fav.name} is heavily favored — standard chalk`);
   }
 
   // 2. Model edge for the underdog
@@ -822,13 +822,13 @@ function calcUpsetAlert(
   // spreadEdge < 0 = model sees value for the underdog
   if (spreadEdge < -4) {
     score += 3;
-    reasons.push(\`Model projects \${dog.name} wins outright (edge: \${spreadEdge.toFixed(1)} pts)\`);
+    reasons.push(`Model projects ${dog.name} wins outright (edge: ${spreadEdge.toFixed(1)} pts)`);
   } else if (spreadEdge < -2) {
     score += 2;
-    reasons.push(\`Model sees \${Math.abs(spreadEdge).toFixed(1)}-pt cover value for \${dog.name}\`);
+    reasons.push(`Model sees ${Math.abs(spreadEdge).toFixed(1)}-pt cover value for ${dog.name}`);
   } else if (spreadEdge < 0) {
     score += 1;
-    reasons.push(\`Model leans \${dog.name} to cover\`);
+    reasons.push(`Model leans ${dog.name} to cover`);
   }
 
   // 3. Historical seed upset rates (first-round only, seeds 5-13)
@@ -840,10 +840,10 @@ function calcUpsetAlert(
   if (histRate !== undefined) {
     if (histRate >= 0.45) {
       score += 2;
-      reasons.push(\`Seed #\${dog.seed} wins \${Math.round(histRate * 100)}% of first-round games historically\`);
+      reasons.push(`Seed #${dog.seed} wins ${Math.round(histRate * 100)}% of first-round games historically`);
     } else if (histRate >= 0.30) {
       score += 1;
-      reasons.push(\`Seed #\${dog.seed} historical win rate: \${Math.round(histRate * 100)}%\`);
+      reasons.push(`Seed #${dog.seed} historical win rate: ${Math.round(histRate * 100)}%`);
     }
   }
 
@@ -851,7 +851,7 @@ function calcUpsetAlert(
   const paceDiff = Math.abs(tA.tempo - tB.tempo);
   if (paceDiff > 7) {
     score += 1;
-    reasons.push(\`\${paceDiff.toFixed(1)} poss/40 pace gap — game flow is unpredictable\`);
+    reasons.push(`${paceDiff.toFixed(1)} poss/40 pace gap — game flow is unpredictable`);
   }
 
   // 5. Volatility — high-3PT games swing wildly
@@ -864,7 +864,7 @@ function calcUpsetAlert(
   const dogWins = parseInt(dog.last10.split('-')[0] ?? '5');
   if (dogWins >= 8) {
     score += 1;
-    reasons.push(\`\${dog.name} is red-hot: \${dog.last10} last 10 games\`);
+    reasons.push(`${dog.name} is red-hot: ${dog.last10} last 10 games`);
   }
 
   // 7. Underdog ATS discipline
@@ -874,12 +874,12 @@ function calcUpsetAlert(
   const atsPct = atsW / (atsW + atsL);
   if (atsPct > 0.58) {
     score += 1;
-    reasons.push(\`\${dog.name} covers \${Math.round(atsPct * 100)}% this season — market undervalues them\`);
+    reasons.push(`${dog.name} covers ${Math.round(atsPct * 100)}% this season — market undervalues them`);
   }
 
   // Always have at least one reason
   if (reasons.length === 0) {
-    reasons.push(\`\${fav.name} is dominant — take the chalk with confidence\`);
+    reasons.push(`${fav.name} is dominant — take the chalk with confidence`);
   }
 
   const finalScore = Math.min(10, Math.max(1, score));
