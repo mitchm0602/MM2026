@@ -538,13 +538,29 @@ export function generateAnalysis(tA: Team, tB: Team, lines: BettingLine): Matchu
   const projTotal      = calcPaceAdjustedTotal(tA, tB);
   const seedEdge       = calcSeedEdge(tA, tB);
 
-  // marketSpread from Team A's perspective: negative = tA favored
+  // marketSpread from Team A's perspective.
+  // spreads are stored as positive numbers in mock-data/live API.
+  // spreadFav tells us who is giving points.
+  // We negate when tA is the favorite so that:
+  //   spreadEdge = projMargin - marketSpread
+  //   e.g. Michigan (tA) -26.5: marketSpread = -26.5
+  //        projMargin = +22.4  →  spreadEdge = 22.4 - (-26.5) is WRONG
+  //   Correct: marketSpread = -26.5 means tA must win by MORE than 26.5
+  //   spreadEdge = projMargin - (-26.5) would give +48 — also wrong
+  //
+  //   The right framing: marketSpread is the LINE tA must beat.
+  //   If tA is favored by 26.5, the line tA must beat is +26.5 (from tA's perspective).
+  //   spreadEdge = projMargin(22.4) - line(26.5) = -4.1  ← tA falls short of covering
+  //
+  //   So: when tA is the favorite, marketSpread = +lines.spread (positive)
+  //       when tB is the favorite, marketSpread = -lines.spread (negative, tA is dog)
   const marketSpread   = lines.spreadFav === tA.id ? lines.spread : -lines.spread;
 
   // Apply seed adjustment to margin
   const rawMargin      = projA - projB;
   const adjustedMargin = rawMargin + seedEdge;
 
+  // spreadEdge: positive = model likes tA to cover, negative = model likes tB to cover
   const spreadEdge     = adjustedMargin - marketSpread;
   const totalEdge      = projTotal - lines.total;
   const coverProb      = calcCoverProb(adjustedMargin, marketSpread);
@@ -552,9 +568,16 @@ export function generateAnalysis(tA: Team, tB: Team, lines: BettingLine): Matchu
   const confidence     = calcConfidence(tA, tB, spreadEdge);
   const volatility     = calcVolatility(tA, tB);
 
-  const pickCover = adjustedMargin > 0
-    ? `${tA.name} ${marketSpread > 0 ? '+' : ''}${marketSpread}`
-    : `${tB.name} ${Math.abs(marketSpread) > 0 ? '+' : ''}${Math.abs(marketSpread).toFixed(1)}`;
+  // pickCover: show the team the model thinks covers, with their line
+  // tA covers when projMargin > marketSpread (model projects bigger win than the line)
+  // tB covers when projMargin < marketSpread (favorite underperforms the spread)
+  const favName = lines.spreadFav === tA.id ? tA.name : tB.name;
+  const dogName = lines.spreadFav === tA.id ? tB.name : tA.name;
+  const lineVal = lines.spread.toFixed(1);
+
+  const pickCover = adjustedMargin > marketSpread
+    ? `${favName} -${lineVal}`   // favorite covers
+    : `${dogName} +${lineVal}`;  // underdog covers (or favorite doesn't cover)
 
   const overPct = Math.round(overProb * 100);
   const ouLean  = totalEdge > 2.5
