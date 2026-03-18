@@ -2003,22 +2003,27 @@ You are NOT providing financial advice. Always note this briefly but don't belab
     setError('');
 
     try {
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
+      // Route through /api/chat so the Anthropic API key stays server-side
+      const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 1000,
-          system: buildSystemPrompt(),
+          system:   buildSystemPrompt(),
           messages: newMessages.map(m => ({ role: m.role, content: m.content })),
         }),
       });
 
       const data = await response.json();
-      const reply = data.content?.[0]?.text ?? 'Sorry, no response received.';
+
+      if (!response.ok) {
+        setError(data.error ?? `Server error ${response.status}`);
+        return;
+      }
+
+      const reply = data.reply ?? 'Sorry, no response received.';
       setMessages(prev => [...prev, { role: 'assistant', content: reply }]);
     } catch {
-      setError('Connection error — check your network and try again.');
+      setError('Network error — check your connection and try again.');
     } finally {
       setLoading(false);
     }
