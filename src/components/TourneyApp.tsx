@@ -574,6 +574,25 @@ interface UpsetAlert {
   dog:     Team;               // the underdog / potential upset team
 }
 
+// Composite value score 1-100
+interface ValueScore {
+  score:       number;   // 1-100
+  grade:       string;   // 'A+' | 'A' | 'B' | 'C' | 'D'
+  color:       string;
+  breakdown:   string;   // human description of what drove the score
+}
+
+// Result after a game is played (for CLV tracking)
+interface GameResult {
+  matchupKey:  string;
+  tAScore:     number;
+  tBScore:     number;
+  spreadCover: 'hit' | 'miss' | 'push';
+  ouResult:    'over' | 'under' | 'push';
+  clv:         number;   // closing line value: how much did line move after "bet"
+  timestamp:   number;
+}
+
 interface BoardRow {
   date:         string;
   region:       string;
@@ -592,12 +611,14 @@ interface BoardRow {
   projTotal:    number;
   volatility:   'HIGH' | 'MODERATE' | 'LOW';
   sharpSignal:  SharpSignal;
-  upsetAlert:   UpsetAlert;    // upset probability score
+  upsetAlert:   UpsetAlert;
+  valueScore:   ValueScore;    // composite 1-100 value score
+  matchupKey:   string;        // for result tracking
 }
 // All 32 first-round matchups (+ likely round-2 projections for 3/22)
 // sorted by model edge, total edge, or confidence.
 
-type SortKey = 'spreadEdge' | 'totalEdge' | 'confidence' | 'sharpScore' | 'upsetScore';
+type SortKey = 'spreadEdge' | 'totalEdge' | 'confidence' | 'sharpScore' | 'upsetScore' | 'valueScore';
 
 // ── Sharp money signal calculator ─────────────────────────────
 // Reads openSpread/openTotal vs current spread/total to determine
@@ -700,6 +721,63 @@ function calcSharpSignal(line: BettingLine, spreadEdge: number, totalEdge: numbe
   };
 }
 type DateFilter = 'all' | '3/19' | '3/20' | '3/21' | '3/22';
+
+// ── Value Score (1-100) ──────────────────────────────────────────
+// Single composite number that weights spread edge, total edge,
+// confidence, sharp confirmation, and upset context. Higher = better bet.
+// Formula: spreadComponent(40) + totalComponent(30) + confComponent(20) + sharpBonus(10)
+// Then multiplied by a direction bonus if sharp money confirms the pick.
+function calcValueScore(
+  spreadEdge: number,
+  totalEdge:  number,
+  confidence: number,
+  signal:     SharpSignal,
+): ValueScore {
+  // Spread component (0-40): scales with edge magnitude, capped at 10 pts
+  const spreadRaw  = Math.min(Math.abs(spreadEdge), 10);
+  const spreadComp = (spreadRaw / 10) * 40;
+
+  // Total component (0-30): scales with edge magnitude, capped at 8 pts
+  const totalRaw   = Math.min(Math.abs(totalEdge), 8);
+  const totalComp  = (totalRaw / 8) * 30;
+
+  // Confidence component (0-20): confidence score 3-9.8 mapped to 0-20
+  const confNorm   = (confidence - 3) / (9.8 - 3);
+  const confComp   = Math.max(0, confNorm * 20);
+
+  // Sharp bonus (0-10): confirmed sharp money adds up to 10 pts, against subtracts
+  const sharpBonus = !signal.moved         ? 0
+    : signal.direction === 'toward' && signal.confirmedBy === 'both' ? 10
+    : signal.direction === 'toward'  ? 6
+    : signal.direction === 'against' ? -8
+    : 0;
+
+  // Raw score
+  const raw   = spreadComp + totalComp + confComp + sharpBonus;
+  const score = Math.round(Math.min(100, Math.max(1, raw)));
+
+  // Grade and color
+  const grade =
+    score >= 80 ? 'A+' :
+    score >= 65 ? 'A'  :
+    score >= 50 ? 'B'  :
+    score >= 35 ? 'C'  : 'D';
+
+  const color =
+    score >= 80 ? 'var(--green)' :
+    score >= 65 ? '#6ee09a'      :
+    score >= 50 ? 'var(--amber)' :
+    score >= 35 ? 'var(--text2)' : 'var(--red)';
+
+  const breakdown =
+    score >= 80 ? 'Elite edge — strong spread, total, and confidence alignment' :
+    score >= 65 ? 'Strong edge — meaningful model vs market disagreement' :
+    score >= 50 ? 'Moderate edge — above-average bet quality' :
+    score >= 35 ? 'Marginal — model and market are close' :
+                  'Avoid — no meaningful edge detected';
+
+  return { score, grade, color, breakdown };
+}
 
 // ── Upset Alert Score (1-10) ─────────────────────────────────────────────
 // Scores the underdog's probability of covering or winning outright.
@@ -868,12 +946,16 @@ function TourneyBoard({ teams, onLoadMatchup }: {
   teams: Team[];
   onLoadMatchup: (a: Team, b: Team) => void;
 }) {
-  const [sortKey,    setSortKey]    = useState<SortKey>('spreadEdge');
+  const [sortKey,    setSortKey]    = useState<SortKey>('valueScore');
   const [dateFilter, setDateFilter] = useState<DateFilter>('all');
   const [regionFilter, setRegionFilter] = useState<string>('all');
   const [showOnlyEdge,  setShowOnlyEdge]  = useState(false);
   const [showOnlySharp, setShowOnlySharp] = useState(false);
   const [showOnlyUpset, setShowOnlyUpset] = useState(false);
+  const [viewMode,      setViewMode]      = useState<'table' | 'schedule'>('table');
+  const [results,       setResults]       = useState<Record<string, GameResult>>({});
+  const [showResultModal, setShowResultModal] = useState<string | null>(null);
+  const [resultInput,  setResultInput]    = useState({ tAScore:'', tBScore:'' });
 
   // Build a lookup map from team ID → Team object
   const teamMap = useMemo(() => {
@@ -905,6 +987,8 @@ function TourneyBoard({ teams, onLoadMatchup }: {
       const analysis = generateAnalysis(tA, tB, line);
       const sharpSignal = calcSharpSignal(line, analysis.spreadEdge, analysis.totalEdge);
       const upsetAlert  = calcUpsetAlert(tA, tB, line, analysis.spreadEdge, analysis.volatility);
+      const valueScore  = calcValueScore(analysis.spreadEdge, analysis.totalEdge, analysis.confidence, sharpSignal);
+      const matchupKey  = [s.tAId, s.tBId].sort().join('-') + '-' + s.date;
       result.push({
         date:        s.date,
         region:      s.region,
@@ -922,6 +1006,8 @@ function TourneyBoard({ teams, onLoadMatchup }: {
         volatility:  analysis.volatility,
         sharpSignal,
         upsetAlert,
+        valueScore,
+        matchupKey,
       });
     }
     return result;
@@ -952,6 +1038,7 @@ function TourneyBoard({ teams, onLoadMatchup }: {
       if (sortKey === 'spreadEdge') return Math.abs(b.spreadEdge) - Math.abs(a.spreadEdge);
       if (sortKey === 'totalEdge')  return Math.abs(b.totalEdge)  - Math.abs(a.totalEdge);
       if (sortKey === 'upsetScore') return b.upsetAlert.score - a.upsetAlert.score;
+      if (sortKey === 'valueScore') return b.valueScore.score - a.valueScore.score;
       return sharpScore(b) - sharpScore(a);
     });
   }, [rows, sortKey, showOnlyEdge, showOnlySharp, showOnlyUpset]);
@@ -990,6 +1077,7 @@ function TourneyBoard({ teams, onLoadMatchup }: {
         {/* Sort */}
         <div style={{ display:'flex', gap:4, background:'var(--bg3)', borderRadius:8, padding:4 }}>
           {([
+            ['valueScore', '⭐ Value Score'],
             ['spreadEdge', '📊 Spread Edge'],
             ['totalEdge',  '🎯 Total Edge'],
             ['confidence', '💪 Confidence'],
@@ -1053,7 +1141,20 @@ function TourneyBoard({ teams, onLoadMatchup }: {
           Upset risks only (≥6)
         </label>
 
-        <span style={{ marginLeft:'auto', fontSize:12, color:'var(--text3)' }}>
+        {/* View mode toggle */}
+        <div style={{ display:'flex', gap:4, background:'var(--bg3)', borderRadius:8, padding:4, marginLeft:'auto' }}>
+          {(['table', 'schedule'] as const).map(m => (
+            <button key={m} onClick={() => setViewMode(m)}
+              style={{ fontSize:12, padding:'6px 12px', borderRadius:6, border:'none', cursor:'pointer',
+                background: viewMode === m ? 'var(--accent)' : 'transparent',
+                color: viewMode === m ? '#fff' : 'var(--text2)',
+                fontWeight: viewMode === m ? 600 : 400 }}>
+              {m === 'table' ? '📋 Table' : '📅 Schedule'}
+            </button>
+          ))}
+        </div>
+
+        <span style={{ fontSize:12, color:'var(--text3)' }}>
           {sorted.length} matchup{sorted.length !== 1 ? 's' : ''}
         </span>
       </div>
@@ -1063,6 +1164,14 @@ function TourneyBoard({ teams, onLoadMatchup }: {
         <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(200px, 1fr))',
           gap:10, marginBottom:20 }}>
           {[
+            {
+              label: '⭐ Top Value Pick',
+              value: (() => {
+                const top = [...sorted].sort((a,b) => b.valueScore.score - a.valueScore.score)[0];
+                return top ? `${top.pickCover} — ${top.valueScore.grade} (${top.valueScore.score}/100)` : '—';
+              })(),
+              color: 'var(--green)',
+            },
             {
               label: '🔥 Best Spread Bet',
               value: (() => {
@@ -1117,6 +1226,17 @@ function TourneyBoard({ teams, onLoadMatchup }: {
               })(),
               color: 'var(--amber)',
             },
+            {
+              label: '📋 CLV Record',
+              value: (() => {
+                const res = Object.values(results);
+                if (res.length === 0) return 'No results logged yet';
+                const hits = res.filter(r => r.spreadCover === 'hit').length;
+                const avgClv = res.reduce((s, r) => s + r.clv, 0) / res.length;
+                return `${hits}-${res.length - res.filter(r=>r.spreadCover==='push').length - hits} ATS · avg CLV ${avgClv > 0 ? '+' : ''}${avgClv.toFixed(1)}`;
+              })(),
+              color: Object.keys(results).length === 0 ? 'var(--text3)' : 'var(--accent)',
+            },
           ].map(({ label, value, color }) => (
             <div key={label} style={{ background:'var(--bg3)', border:'1px solid var(--border)',
               borderRadius:'var(--radius)', padding:'12px 14px' }}>
@@ -1127,12 +1247,15 @@ function TourneyBoard({ teams, onLoadMatchup }: {
         </div>
       )}
 
-      {/* Main table */}
-      <div style={{ overflowX:'auto' }}>
+      {/* Main table — hidden in schedule mode */}
+      {viewMode === 'table' && <div style={{ overflowX:'auto' }}>
         <table className="stat-table" style={{ minWidth:900 }}>
           <thead>
             <tr>
               <th style={{ width:40 }}>#</th>
+              <th style={{ cursor:'pointer', minWidth:70 }} onClick={() => setSortKey('valueScore')}>
+                Value {sortKey === 'valueScore' ? '↓' : ''}
+              </th>
               <th>Date</th>
               <th>Matchup</th>
               <th>Proj. Score</th>
@@ -1172,6 +1295,20 @@ function TourneyBoard({ teams, onLoadMatchup }: {
                   {/* Rank */}
                   <td style={{ fontSize:12, color:'var(--text3)', fontWeight:600 }}>
                     {i + 1}
+                  </td>
+
+                  {/* Value Score */}
+                  <td>
+                    <div style={{ textAlign:'center' }}>
+                      <div style={{ fontSize:22, fontWeight:900, lineHeight:1,
+                        color: r.valueScore.color }}>
+                        {r.valueScore.score}
+                      </div>
+                      <div style={{ fontSize:12, fontWeight:700,
+                        color: r.valueScore.color }}>
+                        {r.valueScore.grade}
+                      </div>
+                    </div>
                   </td>
 
                   {/* Date + Region */}
@@ -1345,26 +1482,326 @@ function TourneyBoard({ teams, onLoadMatchup }: {
 
                   {/* Action */}
                   <td>
-                    <button
-                      onClick={() => onLoadMatchup(r.tA, r.tB)}
-                      style={{ background:'var(--accent)', color:'#fff', border:'none',
-                        borderRadius:6, padding:'6px 12px', fontSize:11, cursor:'pointer',
-                        fontWeight:600, whiteSpace:'nowrap' }}>
-                      Deep Dive →
-                    </button>
+                    <div style={{ display:'flex', flexDirection:'column', gap:4 }}>
+                      <button
+                        onClick={() => onLoadMatchup(r.tA, r.tB)}
+                        style={{ background:'var(--accent)', color:'#fff', border:'none',
+                          borderRadius:6, padding:'6px 12px', fontSize:11, cursor:'pointer',
+                          fontWeight:600, whiteSpace:'nowrap' }}>
+                        Deep Dive →
+                      </button>
+                      {results[r.matchupKey] ? (
+                        <div style={{ fontSize:10, textAlign:'center',
+                          color: results[r.matchupKey].spreadCover === 'hit' ? 'var(--green)' : 'var(--red)' }}>
+                          {results[r.matchupKey].spreadCover === 'hit' ? '✓ Cover' : results[r.matchupKey].spreadCover === 'push' ? '— Push' : '✗ Miss'}
+                          {' · '}{results[r.matchupKey].tAScore}-{results[r.matchupKey].tBScore}
+                          {' · CLV '}{results[r.matchupKey].clv > 0 ? '+' : ''}{results[r.matchupKey].clv.toFixed(1)}
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => { setShowResultModal(r.matchupKey); setResultInput({tAScore:'', tBScore:''}); }}
+                          style={{ background:'var(--bg3)', color:'var(--text2)',
+                            border:'1px solid var(--border)', borderRadius:6,
+                            padding:'4px 8px', fontSize:10, cursor:'pointer', whiteSpace:'nowrap' }}>
+                          + Log Result
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               );
             })}
           </tbody>
         </table>
-      </div>
+      </div>}
 
       {sorted.length === 0 && (
         <div style={{ textAlign:'center', padding:40, color:'var(--text3)' }}>
           No matchups found for the selected filters.
         </div>
       )}
+
+      {/* ── SCHEDULE VIEW ─────────────────────────────────────── */}
+      {viewMode === 'schedule' && sorted.length > 0 && (() => {
+        const byDate: Record<string, BoardRow[]> = {};
+        sorted.forEach(r => {
+          if (!byDate[r.date]) byDate[r.date] = [];
+          byDate[r.date].push(r);
+        });
+        const dateLabels: Record<string, string> = {
+          '3/19': 'Thursday March 19',
+          '3/20': 'Friday March 20',
+          '3/21': 'Saturday March 21',
+          '3/22': 'Sunday March 22',
+        };
+        return (
+          <div style={{ marginTop:24 }}>
+            {Object.entries(byDate).sort(([a],[b]) => a.localeCompare(b)).map(([date, dayRows]) => (
+              <div key={date} style={{ marginBottom:32 }}>
+                {/* Day header */}
+                <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:12 }}>
+                  <div style={{ fontSize:16, fontWeight:700 }}>
+                    📅 {dateLabels[date] ?? date}
+                  </div>
+                  <div style={{ height:1, flex:1, background:'var(--border)' }} />
+                  <div style={{ fontSize:11, color:'var(--text3)' }}>
+                    {dayRows.length} game{dayRows.length !== 1 ? 's' : ''}
+                  </div>
+                </div>
+
+                {/* Game cards for this day */}
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(320px, 1fr))', gap:12 }}>
+                  {dayRows.map(r => {
+                    const res = results[r.matchupKey];
+                    return (
+                      <div key={r.matchupKey}
+                        style={{ background:'var(--bg2)', border:`1px solid ${
+                          r.valueScore.score >= 65 ? 'rgba(34,201,122,0.3)' :
+                          r.upsetAlert.score >= 7  ? 'rgba(255,79,106,0.3)' :
+                          'var(--border)'}`,
+                          borderRadius:'var(--card-radius)', padding:16,
+                          position:'relative', overflow:'hidden' }}>
+
+                        {/* Value score badge — top right */}
+                        <div style={{ position:'absolute', top:12, right:12,
+                          width:44, height:44, borderRadius:'50%',
+                          background: r.valueScore.score >= 65 ? 'rgba(34,201,122,0.15)' : 'var(--bg3)',
+                          border:`2px solid ${r.valueScore.color}`,
+                          display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center' }}>
+                          <div style={{ fontSize:14, fontWeight:900, color:r.valueScore.color, lineHeight:1 }}>
+                            {r.valueScore.score}
+                          </div>
+                          <div style={{ fontSize:9, fontWeight:700, color:r.valueScore.color }}>
+                            {r.valueScore.grade}
+                          </div>
+                        </div>
+
+                        {/* Teams */}
+                        <div style={{ marginRight:52 }}>
+                          <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:2 }}>
+                            <span style={{ fontSize:18 }}>{r.tA.emoji}</span>
+                            <span style={{ fontSize:14, fontWeight:700, color:r.tA.color }}>{r.tA.name}</span>
+                            <span style={{ fontSize:11, color:'var(--text3)' }}>#{r.tA.seed}</span>
+                          </div>
+                          <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:8 }}>
+                            <span style={{ fontSize:18 }}>{r.tB.emoji}</span>
+                            <span style={{ fontSize:14, fontWeight:700, color:r.tB.color }}>{r.tB.name}</span>
+                            <span style={{ fontSize:11, color:'var(--text3)' }}>#{r.tB.seed}</span>
+                          </div>
+                        </div>
+
+                        {/* Key stats row */}
+                        <div style={{ display:'flex', gap:8, marginBottom:10, flexWrap:'wrap' }}>
+                          <span style={{ fontSize:11, background:'var(--bg3)',
+                            padding:'3px 8px', borderRadius:6, color:'var(--text2)' }}>
+                            {r.favTeam.name} -{r.line.spread}
+                          </span>
+                          <span style={{ fontSize:11, background:'var(--bg3)',
+                            padding:'3px 8px', borderRadius:6, color:'var(--amber)' }}>
+                            O/U {r.line.total}
+                          </span>
+                          <span style={{ fontSize:11, background:'var(--bg3)',
+                            padding:'3px 8px', borderRadius:6,
+                            color: r.spreadEdge > 0 ? 'var(--green)' : 'var(--red)' }}>
+                            {r.spreadEdge > 0 ? '+' : ''}{r.spreadEdge.toFixed(1)} edge
+                          </span>
+                          {r.sharpSignal.moved && (
+                            <span style={{ fontSize:11, padding:'3px 8px', borderRadius:6,
+                              background: r.sharpSignal.direction === 'toward'
+                                ? 'rgba(34,201,122,0.12)' : 'rgba(255,79,106,0.12)',
+                              color: r.sharpSignal.direction === 'toward'
+                                ? 'var(--green)' : 'var(--red)' }}>
+                              {r.sharpSignal.emoji} Sharp
+                            </span>
+                          )}
+                          <span style={{ fontSize:11, padding:'3px 8px', borderRadius:6,
+                            background: r.upsetAlert.score >= 6
+                              ? 'rgba(255,179,64,0.12)' : 'var(--bg3)',
+                            color: r.upsetAlert.score >= 6 ? 'var(--amber)' : 'var(--text3)' }}>
+                            {r.upsetAlert.emoji} {r.upsetAlert.label}
+                          </span>
+                        </div>
+
+                        {/* Pick */}
+                        <div style={{ fontSize:13, fontWeight:700, marginBottom:6,
+                          color: r.spreadEdge > 0 ? 'var(--green)' : 'var(--red)' }}>
+                          Pick: {r.pickCover}
+                          <span style={{ fontSize:11, color:'var(--text3)', fontWeight:400, marginLeft:6 }}>
+                            proj {Math.round(r.projA)}–{Math.round(r.projB)}
+                          </span>
+                        </div>
+
+                        {/* Value breakdown */}
+                        <div style={{ fontSize:10, color:'var(--text3)', marginBottom:10 }}>
+                          {r.valueScore.breakdown}
+                        </div>
+
+                        {/* CLV result row */}
+                        {res ? (
+                          <div style={{ display:'flex', alignItems:'center', gap:8,
+                            padding:'6px 10px', borderRadius:6,
+                            background: res.spreadCover === 'hit'
+                              ? 'rgba(34,201,122,0.1)' : 'rgba(255,79,106,0.1)',
+                            border: `1px solid ${res.spreadCover === 'hit'
+                              ? 'rgba(34,201,122,0.3)' : 'rgba(255,79,106,0.3)'}` }}>
+                            <span style={{ fontWeight:700,
+                              color: res.spreadCover === 'hit' ? 'var(--green)' : 'var(--red)' }}>
+                              {res.spreadCover === 'hit' ? '✓ HIT' : res.spreadCover === 'push' ? '— PUSH' : '✗ MISS'}
+                            </span>
+                            <span style={{ fontSize:11, color:'var(--text2)' }}>
+                              {res.tAScore}–{res.tBScore}
+                            </span>
+                            <span style={{ fontSize:11, color:'var(--text3)', marginLeft:'auto' }}>
+                              CLV {res.clv > 0 ? '+' : ''}{res.clv.toFixed(1)}
+                            </span>
+                          </div>
+                        ) : (
+                          <div style={{ display:'flex', gap:6 }}>
+                            <button onClick={() => onLoadMatchup(r.tA, r.tB)}
+                              style={{ flex:1, background:'var(--accent)', color:'#fff', border:'none',
+                                borderRadius:6, padding:'7px 0', fontSize:11, cursor:'pointer', fontWeight:600 }}>
+                              Deep Dive →
+                            </button>
+                            <button onClick={() => { setShowResultModal(r.matchupKey); setResultInput({tAScore:'', tBScore:''}); }}
+                              style={{ background:'var(--bg3)', color:'var(--text2)',
+                                border:'1px solid var(--border)', borderRadius:6,
+                                padding:'7px 10px', fontSize:11, cursor:'pointer' }}>
+                              + Log
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
+
+      {/* ── LOG RESULT MODAL ──────────────────────────────────── */}
+      {showResultModal && (() => {
+        const row = sorted.find(r => r.matchupKey === showResultModal);
+        if (!row) return null;
+
+        const handleSubmit = () => {
+          const tAScore = parseInt(resultInput.tAScore);
+          const tBScore = parseInt(resultInput.tBScore);
+          if (isNaN(tAScore) || isNaN(tBScore)) return;
+
+          // Determine spread cover
+          const margin      = tAScore - tBScore; // from tA's perspective
+          const marketSpread = row.line.spreadFav === row.tA.id
+            ? row.line.spread : -row.line.spread;
+          const spreadCover: GameResult['spreadCover'] =
+            margin === marketSpread ? 'push'
+            : margin > marketSpread  ? 'hit'   // tA covered
+            : 'miss';
+
+          // O/U result
+          const actualTotal = tAScore + tBScore;
+          const ouResult: GameResult['ouResult'] =
+            actualTotal === row.line.total ? 'push'
+            : actualTotal > row.line.total  ? 'over'
+            : 'under';
+
+          // CLV: positive = line moved in favor of our pick after we "bet"
+          // Using openSpread vs current spread as proxy
+          const openS  = row.line.openSpread ?? row.line.spread;
+          const clv    = row.line.spreadFav === row.tA.id
+            ? row.line.spread - openS   // spread grew = better for fav
+            : openS - row.line.spread;  // spread shrank = better for dog
+
+          const result: GameResult = {
+            matchupKey: showResultModal,
+            tAScore, tBScore,
+            spreadCover, ouResult,
+            clv,
+            timestamp: Date.now(),
+          };
+
+          setResults(prev => ({ ...prev, [showResultModal]: result }));
+          setShowResultModal(null);
+        };
+
+        return (
+          <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.7)',
+            zIndex:1000, display:'flex', alignItems:'center', justifyContent:'center' }}
+            onClick={() => setShowResultModal(null)}>
+            <div style={{ background:'var(--bg2)', border:'1px solid var(--border)',
+              borderRadius:'var(--card-radius)', padding:24, width:320,
+              boxShadow:'0 20px 60px rgba(0,0,0,0.4)' }}
+              onClick={e => e.stopPropagation()}>
+
+              <div style={{ fontSize:16, fontWeight:700, marginBottom:4 }}>
+                Log Result
+              </div>
+              <div style={{ fontSize:13, color:'var(--text2)', marginBottom:16 }}>
+                {row.tA.name} vs {row.tB.name} · {row.date}
+              </div>
+
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:16 }}>
+                {[
+                  { label: row.tA.name, key: 'tAScore' as const },
+                  { label: row.tB.name, key: 'tBScore' as const },
+                ].map(({ label, key }) => (
+                  <div key={key}>
+                    <div style={{ fontSize:11, color:'var(--text3)', marginBottom:4 }}>{label}</div>
+                    <input
+                      type="number"
+                      placeholder="Score"
+                      value={resultInput[key]}
+                      onChange={e => setResultInput(prev => ({ ...prev, [key]: e.target.value }))}
+                      style={{ width:'100%', background:'var(--bg3)',
+                        border:'1px solid var(--border)', color:'var(--text)',
+                        borderRadius:6, padding:'8px 10px', fontSize:16,
+                        fontWeight:700, textAlign:'center', boxSizing:'border-box' }}
+                    />
+                  </div>
+                ))}
+              </div>
+
+              {/* Preview */}
+              {resultInput.tAScore && resultInput.tBScore && (() => {
+                const tA = parseInt(resultInput.tAScore);
+                const tB = parseInt(resultInput.tBScore);
+                if (isNaN(tA) || isNaN(tB)) return null;
+                const margin = tA - tB;
+                const ms = row.line.spreadFav === row.tA.id ? row.line.spread : -row.line.spread;
+                const hit = margin > ms;
+                const push = margin === ms;
+                return (
+                  <div style={{ padding:'10px 12px', borderRadius:8,
+                    background: hit ? 'rgba(34,201,122,0.1)' : push ? 'var(--bg3)' : 'rgba(255,79,106,0.1)',
+                    marginBottom:12, fontSize:13, fontWeight:600,
+                    color: hit ? 'var(--green)' : push ? 'var(--text2)' : 'var(--red)' }}>
+                    {hit ? `✓ ${row.pickCover} COVERS` : push ? `— PUSH` : `✗ ${row.pickCover} MISSES`}
+                    <span style={{ fontWeight:400, color:'var(--text3)', marginLeft:8 }}>
+                      · total {tA + tB} (mkt {row.line.total})
+                    </span>
+                  </div>
+                );
+              })()}
+
+              <div style={{ display:'flex', gap:8 }}>
+                <button onClick={() => setShowResultModal(null)}
+                  style={{ flex:1, background:'var(--bg3)', color:'var(--text2)',
+                    border:'1px solid var(--border)', borderRadius:6,
+                    padding:'10px 0', cursor:'pointer', fontSize:13 }}>
+                  Cancel
+                </button>
+                <button onClick={handleSubmit}
+                  style={{ flex:2, background:'var(--accent)', color:'#fff',
+                    border:'none', borderRadius:6, padding:'10px 0',
+                    cursor:'pointer', fontSize:13, fontWeight:700 }}>
+                  Save Result
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       <div style={{ marginTop:16, fontSize:11, color:'var(--text3)', textAlign:'center' }}>
         ⚠️ For informational purposes only. Not financial or betting advice.
