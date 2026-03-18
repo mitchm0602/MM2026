@@ -607,7 +607,7 @@ export default function TourneyApp() {
   const fetchLiveLine = useCallback(async (tA: Team, tB: Team): Promise<BettingLine> => {
     try {
       const res  = await fetch(
-        `/api/odds?teamA=${encodeURIComponent(tA.name)}&teamB=${encodeURIComponent(tB.name)}`
+        `/api/odds?teamAId=${encodeURIComponent(tA.id)}&teamBId=${encodeURIComponent(tB.id)}`
       );
       const data = await res.json();
       if (data.line) return data.line as BettingLine;
