@@ -131,293 +131,293 @@ export const MOCK_BETTING_LINES: Record<string, BettingLine> = {
 
   // UMBC -1.5 vs Howard | Total 140.5 (ESPN/CBS confirmed)
   'howard-umbc': {
-    spread: -1.5, spreadFav: 'umbc', ml_a: 105, ml_b: -125,
+    spread: 1.5, spreadFav: 'umbc', ml_a: 105, ml_b: -125,
     total: 140.5, source: 'DraftKings', updated: '3/17 6:40 PM',
-    openSpread: -1.5, openTotal: 140.5,
+    openSpread: 1.5, openTotal: 140.5,
   },
 
   // Texas -1.5 vs NC State | Total 157.5 (ESPN confirmed)
   'ncstate-texas': {
-    spread: -1.5, spreadFav: 'texas', ml_a: -110, ml_b: -110,
+    spread: 1.5, spreadFav: 'texas', ml_a: -110, ml_b: -110,
     total: 157.5, source: 'DraftKings', updated: '3/17 9:15 PM',
-    openSpread: -1.5, openTotal: 157.5,
+    openSpread: 1.5, openTotal: 157.5,
   },
 
   // Lehigh -3 vs Prairie View | Total 142.5 (ESPN: Lehigh -166 ML)
   'lehigh-prairierview': {
-    spread: -3.0, spreadFav: 'lehigh', ml_a: -166, ml_b: 140,
+    spread: 3.0, spreadFav: 'lehigh', ml_a: -166, ml_b: 140,
     total: 142.5, source: 'DraftKings', updated: '3/17 6:40 PM',
-    openSpread: -3.0, openTotal: 142.5,
+    openSpread: 3.0, openTotal: 142.5,
   },
 
   // SMU -6.5 vs Miami OH | Total 164.5 (ESPN/CBS confirmed)
   'miamioh-smu': {
-    spread: -6.5, spreadFav: 'smu', ml_a: 250, ml_b: -310,
+    spread: 6.5, spreadFav: 'smu', ml_a: 250, ml_b: -310,
     total: 164.5, source: 'DraftKings', updated: '3/18 9:15 PM',
-    openSpread: -7.5, openTotal: 164.5,
+    openSpread: 7.5, openTotal: 164.5,
   },
 
   // ══ EAST REGION (March 20-21, Buffalo & Greenville) ════════
 
   // 1 Duke -27.5 vs 16 Siena | Total 135.5 (ESPN confirmed)
   'duke-siena': {
-    spread: -27.5, spreadFav: 'duke', ml_a: -20000, ml_b: 3500,
+    spread: 27.5, spreadFav: 'duke', ml_a: -20000, ml_b: 3500,
     total: 135.5, source: 'FanDuel', updated: '3/20 12:15 PM',
-    openSpread: -27.5, openTotal: 135.5,
+    openSpread: 27.5, openTotal: 135.5,
   },
 
   // 2 UConn -20.5 vs 15 Furman | Total ~143
   'furman-uconn': {
-    spread: -20.5, spreadFav: 'uconn', ml_a: 1400, ml_b: -3000,
+    spread: 20.5, spreadFav: 'uconn', ml_a: 1400, ml_b: -3000,
     total: 143.5, source: 'FanDuel', updated: '3/20 2:45 PM',
-    openSpread: -20.5, openTotal: 143.5,
+    openSpread: 20.5, openTotal: 143.5,
   },
 
   // 3 Michigan St -16.5 vs 14 N. Dakota State | Total 143.5 (CBS/ESPN confirmed)
   'michiganst-northdakotast': {
-    spread: -16.5, spreadFav: 'michiganst', ml_a: 1000, ml_b: -1800,
+    spread: 16.5, spreadFav: 'michiganst', ml_a: 1000, ml_b: -1800,
     total: 143.5, source: 'DraftKings', updated: '3/21 4:05 PM',
-    openSpread: -16.5, openTotal: 143.5,
+    openSpread: 16.5, openTotal: 143.5,
   },
 
   // 4 Kansas -13.5 vs 13 Cal Baptist | Total ~143
   'calbaptist-kansas': {
-    spread: -13.5, spreadFav: 'kansas', ml_a: 700, ml_b: -1200,
+    spread: 13.5, spreadFav: 'kansas', ml_a: 700, ml_b: -1200,
     total: 143.0, source: 'DraftKings', updated: '3/20 2:45 PM',
-    openSpread: -13.5, openTotal: 143.0,
+    openSpread: 13.5, openTotal: 143.0,
   },
 
   // 5 St. John's -11.5 vs 12 Northern Iowa | Total 131.5
   // (VegasInsider: opened -9.5 at some books, SuperBook opened -11; total opened 132.5, now 131.5)
   'northerniowa-stjohns': {
-    spread: -9.5, spreadFav: 'stjohns', ml_a: 380, ml_b: -480,
+    spread: 9.5, spreadFav: 'stjohns', ml_a: 380, ml_b: -480,
     total: 131.5, source: 'DraftKings', updated: '3/21 7:25 PM',
-    openSpread: -9.5, openTotal: 131.5,
+    openSpread: 9.5, openTotal: 131.5,
   },
 
   // 6 Louisville -6.5 vs 11 South Florida | Total ~141
   'louisville-southflorida': {
-    spread: -6.5, spreadFav: 'louisville', ml_a: 220, ml_b: -270,
+    spread: 6.5, spreadFav: 'louisville', ml_a: 220, ml_b: -270,
     total: 141.5, source: 'FanDuel', updated: '3/20 7:10 PM',
-    openSpread: -6.5, openTotal: 141.5,
+    openSpread: 6.5, openTotal: 141.5,
   },
 
   // 7 UCLA -5.5 vs 10 UCF | Total ~152
   // (VegasInsider: UCLA 6-1 ATS run, opened as slight favorite)
   'ucf-ucla': {
-    spread: -5.5, spreadFav: 'ucla', ml_a: 205, ml_b: -255,
+    spread: 5.5, spreadFav: 'ucla', ml_a: 205, ml_b: -255,
     total: 152.0, source: 'DraftKings', updated: '3/21 1:50 PM',
-    openSpread: -5.5, openTotal: 153.5,
+    openSpread: 5.5, openTotal: 153.5,
   },
 
   // 8 Ohio State -2.5 vs 9 TCU | Total 146.5 (ESPN confirmed)
   // (Ohio State 8-1 ATS in last 9 per VegasInsider)
   'ohiostate-tcu': {
-    spread: -2.5, spreadFav: 'ohiostate', ml_a: -142, ml_b: 120,
+    spread: 2.5, spreadFav: 'ohiostate', ml_a: -142, ml_b: 120,
     total: 146.5, source: 'DraftKings', updated: '3/20 12:15 PM',
-    openSpread: -2.5, openTotal: 147.5,
+    openSpread: 2.5, openTotal: 147.5,
   },
 
   // ══ WEST REGION (March 20-21, Portland & Seattle) ══════════
 
   // 1 Arizona -29.5 vs 16 LIU | Total ~148 (Yahoo confirmed -29.5)
   'arizona-liu': {
-    spread: -29.5, spreadFav: 'arizona', ml_a: -8000, ml_b: 2800,
+    spread: 29.5, spreadFav: 'arizona', ml_a: -8000, ml_b: 2800,
     total: 150.5, source: 'FanDuel', updated: '3/20 12:40 PM',
-    openSpread: -29.5, openTotal: 150.5,
+    openSpread: 29.5, openTotal: 150.5,
   },
 
   // 2 Purdue -24.5 vs 15 Queens | Total ~148 (Yahoo confirmed -24.5)
   'purdue-queens': {
-    spread: -24.5, spreadFav: 'purdue', ml_a: -4000, ml_b: 1700,
+    spread: 24.5, spreadFav: 'purdue', ml_a: -4000, ml_b: 1700,
     total: 148.5, source: 'DraftKings', updated: '3/21 3:10 PM',
-    openSpread: -24.5, openTotal: 148.5,
+    openSpread: 24.5, openTotal: 148.5,
   },
 
   // 3 Gonzaga -20.5 vs 14 Kennesaw State | Total 154.5 (ESPN confirmed)
   'gonzaga-kennesawst': {
-    spread: -20.5, spreadFav: 'gonzaga', ml_a: -3200, ml_b: 1400,
+    spread: 20.5, spreadFav: 'gonzaga', ml_a: -3200, ml_b: 1400,
     total: 154.5, source: 'DraftKings', updated: '3/21 10:00 PM',
-    openSpread: -19.5, openTotal: 154.0,
+    openSpread: 19.5, openTotal: 154.0,
   },
 
   // 4 Arkansas -15.5 vs 13 Hawaii | Total ~157 (Yahoo confirmed -15.5)
   'arkansas-hawaii': {
-    spread: -15.5, spreadFav: 'arkansas', ml_a: -1100, ml_b: 680,
+    spread: 15.5, spreadFav: 'arkansas', ml_a: -1100, ml_b: 680,
     total: 157.0, source: 'FanDuel', updated: '3/20 3:10 PM',
-    openSpread: -15.5, openTotal: 154.0,
+    openSpread: 15.5, openTotal: 154.0,
   },
 
   // 5 Wisconsin -9.5 vs 12 High Point | Total ~143 (Yahoo confirmed -9.5)
   'highpoint-wisconsin': {
-    spread: -9.5, spreadFav: 'wisconsin', ml_a: 460, ml_b: -620,
+    spread: 9.5, spreadFav: 'wisconsin', ml_a: 460, ml_b: -620,
     total: 143.0, source: 'DraftKings', updated: '3/20 1:50 PM',
-    openSpread: -9.5, openTotal: 143.0,
+    openSpread: 9.5, openTotal: 143.0,
   },
 
   // 6 BYU vs 11 Texas (First Four winner) — BYU favored ~-4.5
   'byu-texas': {
-    spread: -4.5, spreadFav: 'byu', ml_a: 180, ml_b: -220,
+    spread: 4.5, spreadFav: 'byu', ml_a: 180, ml_b: -220,
     total: 145.5, source: 'FanDuel', updated: '3/21 post-FF',
-    openSpread: -4.0, openTotal: 145.5,
+    openSpread: 4.0, openTotal: 145.5,
   },
   'byu-ncstate': {
-    spread: -5.5, spreadFav: 'byu', ml_a: 210, ml_b: -260,
+    spread: 5.5, spreadFav: 'byu', ml_a: 210, ml_b: -260,
     total: 144.5, source: 'FanDuel', updated: '3/21 post-FF',
-    openSpread: -4.0, openTotal: 144.5,
+    openSpread: 4.0, openTotal: 144.5,
   },
 
   // 7 Miami FL -1.5 vs 10 Missouri | Total ~143 (Yahoo confirmed -1.5)
   'miamifl-missouri': {
-    spread: -1.5, spreadFav: 'miamifl', ml_a: -125, ml_b: 105,
+    spread: 1.5, spreadFav: 'miamifl', ml_a: -125, ml_b: 105,
     total: 143.5, source: 'DraftKings', updated: '3/20 9:57 PM',
-    openSpread: -1.5, openTotal: 143.5,
+    openSpread: 1.5, openTotal: 143.5,
   },
 
   // 8 Villanova vs 9 Utah State -1.5 | Total ~140
   // (Yahoo/CBS: Utah State is the favorite at -1.5)
   'utahst-villanova': {
-    spread: -1.5, spreadFav: 'utahst', ml_a: 115, ml_b: -138,
+    spread: 1.5, spreadFav: 'utahst', ml_a: 115, ml_b: -138,
     total: 140.0, source: 'DraftKings', updated: '3/20 12:40 PM',
-    openSpread: -1.5, openTotal: 140.0,
+    openSpread: 1.5, openTotal: 140.0,
   },
 
   // ══ MIDWEST REGION (March 20-21, Indianapolis & Cleveland) ══
 
   // 1 Michigan vs 16 UMBC or Howard (First Four winner)
   'michigan-umbc': {
-    spread: -27.0, spreadFav: 'michigan', ml_a: -7000, ml_b: 2400,
+    spread: 27.0, spreadFav: 'michigan', ml_a: -7000, ml_b: 2400,
     total: 147.0, source: 'DraftKings', updated: '3/21 post-FF',
-    openSpread: -27.0, openTotal: 147.0,
+    openSpread: 27.0, openTotal: 147.0,
   },
   'howard-michigan': {
-    spread: -26.5, spreadFav: 'michigan', ml_a: -6500, ml_b: 2200,
+    spread: 26.5, spreadFav: 'michigan', ml_a: -6500, ml_b: 2200,
     total: 146.5, source: 'DraftKings', updated: '3/21 post-FF',
-    openSpread: -26.5, openTotal: 146.5,
+    openSpread: 26.5, openTotal: 146.5,
   },
 
   // 2 Iowa State -23.5 vs 15 Tennessee State | Total 139.5
   // (CBS confirmed -23.5; ESPN total 139.5)
   'iowast-tennesseest': {
-    spread: -23.5, spreadFav: 'iowast', ml_a: 2500, ml_b: -8000,
+    spread: 23.5, spreadFav: 'iowast', ml_a: 2500, ml_b: -8000,
     total: 139.5, source: 'DraftKings', updated: '3/21 7:25 PM',
-    openSpread: -23.5, openTotal: 141.0,
+    openSpread: 23.5, openTotal: 141.0,
   },
 
   // 3 Virginia -17.5 vs 14 Wright State | Total ~131.5
   // (CBS confirmed -17.5; Virginia's Pack Line will crater the total)
   'virginia-wrightstate': {
-    spread: -17.5, spreadFav: 'virginia', ml_a: 900, ml_b: -1600,
+    spread: 17.5, spreadFav: 'virginia', ml_a: 900, ml_b: -1600,
     total: 131.5, source: 'FanDuel', updated: '3/21 9:57 PM',
-    openSpread: -17.5, openTotal: 134.5,
+    openSpread: 17.5, openTotal: 134.5,
   },
 
   // 4 Alabama -12.5 vs 13 Hofstra | Total 163.5
   // (CBS confirmed -12.5; Alabama's explosive offense vs weak Hofstra D)
   'alabama-hofstra': {
-    spread: -12.5, spreadFav: 'alabama', ml_a: 900, ml_b: -1600,
+    spread: 12.5, spreadFav: 'alabama', ml_a: 900, ml_b: -1600,
     total: 163.5, source: 'DraftKings', updated: '3/21 12:15 PM',
-    openSpread: -12.5, openTotal: 162.0,
+    openSpread: 12.5, openTotal: 162.0,
   },
 
   // 5 Texas Tech -8.5 vs 12 Akron | Total ~141 (CBS confirmed -8.5)
   'akron-texastech': {
-    spread: -7.5, spreadFav: 'texastech', ml_a: 260, ml_b: -325,
+    spread: 7.5, spreadFav: 'texastech', ml_a: 260, ml_b: -325,
     total: 156.5, source: 'DraftKings', updated: '3/20 3:25 PM',
-    openSpread: -7.5, openTotal: 156.5,
+    openSpread: 7.5, openTotal: 156.5,
   },
 
   // 6 Tennessee vs 11 SMU (First Four winner)
   'smu-tennessee': {
-    spread: -4.0, spreadFav: 'tennessee', ml_a: 165, ml_b: -200,
+    spread: 4.0, spreadFav: 'tennessee', ml_a: 165, ml_b: -200,
     total: 141.5, source: 'DraftKings', updated: '3/21 post-FF',
-    openSpread: -2.5, openTotal: 141.5,
+    openSpread: 2.5, openTotal: 141.5,
   },
   'miamioh-tennessee': {
-    spread: -3.5, spreadFav: 'tennessee', ml_a: 148, ml_b: -178,
+    spread: 3.5, spreadFav: 'tennessee', ml_a: 148, ml_b: -178,
     total: 142.5, source: 'DraftKings', updated: '3/21 post-FF',
-    openSpread: -2.0, openTotal: 142.5,
+    openSpread: 2.0, openTotal: 142.5,
   },
 
   // 7 Kentucky -2.5 vs 10 Santa Clara | Total 161.5
   // (CBS confirmed -3.5; ESPN/Yahoo -2.5; going with -2.5 per majority)
   'kentucky-santaclara': {
-    spread: -3.5, spreadFav: 'kentucky', ml_a: -166, ml_b: 140,
+    spread: 3.5, spreadFav: 'kentucky', ml_a: -166, ml_b: 140,
     total: 160.5, source: 'DraftKings', updated: '3/21 7:10 PM',
-    openSpread: -3.5, openTotal: 160.5,
+    openSpread: 3.5, openTotal: 160.5,
   },
 
   // 8 Georgia -1.5 vs 9 Saint Louis | Total 169.5 (ESPN confirmed -2.5/total 169.5)
   'georgia-stlouis': {
-    spread: -2.5, spreadFav: 'georgia', ml_a: -162, ml_b: 136,
+    spread: 2.5, spreadFav: 'georgia', ml_a: -162, ml_b: 136,
     total: 169.5, source: 'FanDuel', updated: '3/21 9:45 PM',
-    openSpread: -1.5, openTotal: 169.5,
+    openSpread: 1.5, openTotal: 169.5,
   },
 
   // ══ SOUTH REGION (March 20-21, Oklahoma City & Indianapolis) ═
 
   // 1 Florida vs 16 Prairie View or Lehigh (First Four winner)
   'florida-prairierview': {
-    spread: -30.5, spreadFav: 'florida', ml_a: -9000, ml_b: 3200,
+    spread: 30.5, spreadFav: 'florida', ml_a: -9000, ml_b: 3200,
     total: 147.0, source: 'DraftKings', updated: '3/21 post-FF',
-    openSpread: -30.5, openTotal: 147.0,
+    openSpread: 30.5, openTotal: 147.0,
   },
   'florida-lehigh': {
-    spread: -29.5, spreadFav: 'florida', ml_a: -8500, ml_b: 3000,
+    spread: 29.5, spreadFav: 'florida', ml_a: -8500, ml_b: 3000,
     total: 147.0, source: 'DraftKings', updated: '3/21 post-FF',
-    openSpread: -29.5, openTotal: 147.0,
+    openSpread: 29.5, openTotal: 147.0,
   },
 
   // 2 Houston -23.5 vs 15 Idaho | Total 135.5
   // (Yahoo confirmed: Houston vs Idaho -23.5; ESPN/Yahoo total ~135-136)
   'houston-idaho': {
-    spread: -23.5, spreadFav: 'houston', ml_a: 1700, ml_b: -3800,
+    spread: 23.5, spreadFav: 'houston', ml_a: 1700, ml_b: -3800,
     total: 135.5, source: 'FanDuel', updated: '3/21 12:40 PM',
-    openSpread: -23.5, openTotal: 136.5,
+    openSpread: 23.5, openTotal: 136.5,
   },
 
   // 3 Illinois -24.5 vs 14 Penn | Total 150.5 (ESPN confirmed -24.5 / total 150.5)
   'illinois-penn': {
-    spread: -21.5, spreadFav: 'illinois', ml_a: 1400, ml_b: -3000,
+    spread: 21.5, spreadFav: 'illinois', ml_a: 1400, ml_b: -3000,
     total: 150.5, source: 'DraftKings', updated: '3/21 2:45 PM',
-    openSpread: -21.5, openTotal: 149.0,
+    openSpread: 21.5, openTotal: 149.0,
   },
 
   // 4 Nebraska -13.5 vs 13 Troy | Total 137.5
   // (ESPN/CBS confirmed -13.5; VegasInsider total 137.5)
   'nebraska-troy': {
-    spread: -13.5, spreadFav: 'nebraska', ml_a: 700, ml_b: -1200,
+    spread: 13.5, spreadFav: 'nebraska', ml_a: 700, ml_b: -1200,
     total: 137.5, source: 'FanDuel', updated: '3/20 3:15 PM',
-    openSpread: -13.5, openTotal: 137.0,
+    openSpread: 13.5, openTotal: 137.0,
   },
 
   // 5 Vanderbilt -11.5 vs 12 McNeese | Total 150.5 (ESPN confirmed -11.5 / total 150.5)
   'mcneese-vanderbilt': {
-    spread: -11.5, spreadFav: 'vanderbilt', ml_a: 455, ml_b: -625,
+    spread: 11.5, spreadFav: 'vanderbilt', ml_a: 455, ml_b: -625,
     total: 150.5, source: 'DraftKings', updated: '3/20 3:15 PM',
-    openSpread: -11.5, openTotal: 150.5,
+    openSpread: 11.5, openTotal: 150.5,
   },
 
   // 6 North Carolina -2.5 vs 11 VCU | Total 145.5
   // (VegasInsider: opened -2; SuperBook opened -2.5. VCU 16-1 in last 17)
   'northcarolina-vcu': {
-    spread: -2.5, spreadFav: 'northcarolina', ml_a: -138, ml_b: 115,
+    spread: 2.5, spreadFav: 'northcarolina', ml_a: -138, ml_b: 115,
     total: 145.5, source: 'FanDuel', updated: '3/21 9:57 PM',
-    openSpread: -2.0, openTotal: 145.5,
+    openSpread: 2.0, openTotal: 145.5,
   },
 
   // 7 Saint Mary's -3.5 vs 10 Texas A&M | Total 148.5 (Yahoo/CBS confirmed)
   'saintmarys-texasam': {
-    spread: -3.5, spreadFav: 'saintmarys', ml_a: -175, ml_b: 146,
+    spread: 3.5, spreadFav: 'saintmarys', ml_a: -175, ml_b: 146,
     total: 148.5, source: 'DraftKings', updated: '3/20 12:40 PM',
-    openSpread: -3.5, openTotal: 148.5,
+    openSpread: 3.5, openTotal: 148.5,
   },
 
   // 8 Clemson vs 9 Iowa — Iowa favored -2.5 (Yahoo/CBS confirmed: Iowa -2.5)
   'clemson-iowa': {
-    spread: -2.5, spreadFav: 'iowa', ml_a: 118, ml_b: -140,
+    spread: 2.5, spreadFav: 'iowa', ml_a: 118, ml_b: -140,
     total: 145.0, source: 'FanDuel', updated: '3/20 3:10 PM',
-    openSpread: -2.5, openTotal: 145.0,
+    openSpread: 2.5, openTotal: 145.0,
   },
 
 };
