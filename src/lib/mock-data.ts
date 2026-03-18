@@ -38,7 +38,7 @@ export const MOCK_TEAMS: Team[] = [
   // ── SEED 5 ──────────────────────────────────────────────────
   { id:'stjohns',      name:"St. John's",      shortName:"St. John's",  seed:5,  region:'East',    conf:'Big East',     color:'#C8102E', emoji:'🔴', record:'28-6',  ats:'19-15', offEff:114.2, defEff:91.6,  tempo:68.6, sos:10.4, ppg:78.8, oppg:65.6, efgPct:53.4, tovPct:12.6, orbPct:33.2, ftr:40.2, threePct:36.2, ftPct:73.8, last10:'9-1',  neutralRec:'4-1', dataSource:'mock' },
   { id:'wisconsin',    name:'Wisconsin',       shortName:'Wisconsin',   seed:5,  region:'West',    conf:'Big Ten',      color:'#C5050C', emoji:'🦡', record:'24-10', ats:'20-14', offEff:112.6, defEff:93.4,  tempo:65.4, sos:8.8,  ppg:74.8, oppg:67.2, efgPct:52.2, tovPct:13.4, orbPct:29.8, ftr:37.6, threePct:36.4, ftPct:76.8, last10:'7-3',  neutralRec:'3-2', dataSource:'mock' },
-  { id:'texastech',    name:'Texas Tech',      shortName:'Texas Tech',  seed:5,  region:'Midwest', conf:'Big 12',       color:'#CC0000', emoji:'🔴', record:'22-10', ats:'14-18', offEff:111.8, defEff:92.8,  tempo:67.6, sos:9.6,  ppg:75.4, oppg:66.8, efgPct:51.6, tovPct:15.4, orbPct:30.8, ftr:38.6, threePct:33.8, ftPct:72.4, last10:'6-4',  neutralRec:'2-3', dataSource:'mock' },
+  { id:'texastech',    name:'Texas Tech',      shortName:'Texas Tech',  seed:5,  region:'Midwest', conf:'Big 12',       color:'#CC0000', emoji:'🔴', record:'22-10', ats:'14-18', offEff:117.6, defEff:95.4,  tempo:70.8, sos:9.6,  ppg:80.2, oppg:70.6, efgPct:54.2, tovPct:15.4, orbPct:30.8, ftr:38.6, threePct:35.6, ftPct:72.4, last10:'6-4',  neutralRec:'2-3', dataSource:'mock' },
   { id:'vanderbilt',   name:'Vanderbilt',      shortName:'Vanderbilt',  seed:5,  region:'South',   conf:'SEC',          color:'#866D4B', emoji:'⭐', record:'26-7',  ats:'17-16', offEff:113.4, defEff:93.8,  tempo:70.2, sos:9.0,  ppg:77.4, oppg:67.2, efgPct:53.0, tovPct:14.6, orbPct:31.4, ftr:39.2, threePct:35.6, ftPct:73.4, last10:'8-2',  neutralRec:'3-2', dataSource:'mock' },
 
   // ── SEED 6 ──────────────────────────────────────────────────
@@ -50,25 +50,25 @@ export const MOCK_TEAMS: Team[] = [
   // ── SEED 7 ──────────────────────────────────────────────────
   { id:'ucla',         name:'UCLA',            shortName:'UCLA',        seed:7,  region:'East',    conf:'Big Ten',      color:'#2D68C4', emoji:'🐻', record:'23-11', ats:'17-17', offEff:110.4, defEff:96.2,  tempo:69.8, sos:11.2, ppg:74.2, oppg:68.6, efgPct:51.2, tovPct:15.4, orbPct:30.6, ftr:37.8, threePct:34.4, ftPct:72.8, last10:'6-4',  neutralRec:'2-3', dataSource:'mock' },
   { id:'miamifl',      name:'Miami (FL)',      shortName:'Miami FL',    seed:7,  region:'West',    conf:'ACC',          color:'#005030', emoji:'🟢', record:'25-8',  ats:'16-17', offEff:112.2, defEff:95.8,  tempo:69.6, sos:10.8, ppg:76.8, oppg:68.8, efgPct:52.4, tovPct:15.6, orbPct:31.2, ftr:38.4, threePct:35.2, ftPct:73.0, last10:'7-3',  neutralRec:'3-2', dataSource:'mock' },
-  { id:'kentucky',     name:'Kentucky',        shortName:'Kentucky',    seed:7,  region:'Midwest', conf:'SEC',          color:'#0033A0', emoji:'🔵', record:'21-13', ats:'17-17', offEff:111.6, defEff:95.2,  tempo:70.4, sos:10.8, ppg:75.8, oppg:68.4, efgPct:51.4, tovPct:15.8, orbPct:32.8, ftr:40.6, threePct:33.8, ftPct:71.4, last10:'6-4',  neutralRec:'2-3', dataSource:'mock' },
+  { id:'kentucky',     name:'Kentucky',        shortName:'Kentucky',    seed:7,  region:'Midwest', conf:'SEC',          color:'#0033A0', emoji:'🔵', record:'21-13', ats:'17-17', offEff:119.4, defEff:97.8,  tempo:70.4, sos:10.8, ppg:79.8, oppg:72.4, efgPct:54.2, tovPct:15.8, orbPct:32.8, ftr:40.6, threePct:36.2, ftPct:71.4, last10:'6-4',  neutralRec:'2-3', dataSource:'mock' },
   { id:'saintmarys',   name:"Saint Mary's",    shortName:"St. Mary's",  seed:7,  region:'South',   conf:'WCC',          color:'#BA0C2F', emoji:'🔴', record:'27-5',  ats:'18-14', offEff:112.8, defEff:94.6,  tempo:64.8, sos:11.4, ppg:74.2, oppg:66.8, efgPct:52.8, tovPct:13.4, orbPct:30.4, ftr:37.8, threePct:35.6, ftPct:75.2, last10:'8-2',  neutralRec:'4-1', dataSource:'mock' },
 
   // ── SEED 8 ──────────────────────────────────────────────────
   { id:'ohiostate',    name:'Ohio State',      shortName:'Ohio State',  seed:8,  region:'East',    conf:'Big Ten',      color:'#BB0000', emoji:'🔴', record:'21-12', ats:'18-15', offEff:110.8, defEff:96.4,  tempo:69.4, sos:11.2, ppg:74.6, oppg:68.8, efgPct:51.6, tovPct:15.4, orbPct:31.2, ftr:38.8, threePct:34.6, ftPct:72.2, last10:'6-4',  neutralRec:'2-3', dataSource:'mock' },
   { id:'villanova',    name:'Villanova',       shortName:'Villanova',   seed:8,  region:'West',    conf:'Big East',     color:'#00205B', emoji:'🔵', record:'24-8',  ats:'19-13', offEff:111.4, defEff:95.6,  tempo:68.2, sos:11.4, ppg:75.4, oppg:68.2, efgPct:52.2, tovPct:14.2, orbPct:30.6, ftr:38.2, threePct:36.0, ftPct:74.4, last10:'7-3',  neutralRec:'3-2', dataSource:'mock' },
-  { id:'georgia',      name:'Georgia',         shortName:'Georgia',     seed:8,  region:'Midwest', conf:'SEC',          color:'#BA0C2F', emoji:'🐶', record:'22-10', ats:'14-18', offEff:109.6, defEff:97.2,  tempo:70.8, sos:11.6, ppg:73.8, oppg:68.4, efgPct:50.8, tovPct:15.6, orbPct:31.2, ftr:38.6, threePct:34.2, ftPct:70.8, last10:'5-5',  neutralRec:'2-3', dataSource:'mock' },
+  { id:'georgia',      name:'Georgia',         shortName:'Georgia',     seed:8,  region:'Midwest', conf:'SEC',          color:'#BA0C2F', emoji:'🐶', record:'22-10', ats:'14-18', offEff:118.4, defEff:101.6, tempo:73.8, sos:11.6, ppg:82.4, oppg:75.2, efgPct:54.8, tovPct:15.6, orbPct:31.2, ftr:38.6, threePct:36.4, ftPct:70.8, last10:'5-5',  neutralRec:'2-3', dataSource:'mock' },
   { id:'clemson',      name:'Clemson',         shortName:'Clemson',     seed:8,  region:'South',   conf:'ACC',          color:'#F56600', emoji:'🐯', record:'24-10', ats:'15-19', offEff:110.2, defEff:97.4,  tempo:69.8, sos:11.8, ppg:74.0, oppg:69.2, efgPct:51.4, tovPct:15.6, orbPct:31.0, ftr:38.8, threePct:34.8, ftPct:72.0, last10:'5-5',  neutralRec:'2-3', dataSource:'mock' },
 
   // ── SEED 9 ──────────────────────────────────────────────────
   { id:'tcu',          name:'TCU',             shortName:'TCU',         seed:9,  region:'East',    conf:'Big 12',       color:'#4D1979', emoji:'🟣', record:'22-11', ats:'14-19', offEff:110.4, defEff:97.2,  tempo:70.6, sos:12.2, ppg:74.2, oppg:68.8, efgPct:51.0, tovPct:15.8, orbPct:30.8, ftr:38.0, threePct:34.4, ftPct:71.6, last10:'5-5',  neutralRec:'2-3', dataSource:'mock' },
   { id:'utahst',       name:'Utah State',      shortName:'Utah St.',    seed:9,  region:'West',    conf:'MWC',          color:'#00263A', emoji:'🔵', record:'28-6',  ats:'18-16', offEff:112.4, defEff:94.8,  tempo:67.4, sos:12.6, ppg:76.2, oppg:67.4, efgPct:52.6, tovPct:14.4, orbPct:32.4, ftr:39.8, threePct:35.8, ftPct:74.2, last10:'8-2',  neutralRec:'4-1', dataSource:'mock' },
-  { id:'stlouis',      name:'Saint Louis',     shortName:'St. Louis',   seed:9,  region:'Midwest', conf:'Atlantic 10',  color:'#003DA5', emoji:'🔵', record:'28-5',  ats:'18-15', offEff:112.6, defEff:95.6,  tempo:72.8, sos:14.2, ppg:78.4, oppg:68.8, efgPct:53.8, tovPct:14.2, orbPct:33.6, ftr:40.4, threePct:36.4, ftPct:73.6, last10:'8-2',  neutralRec:'3-2', dataSource:'mock' },
+  { id:'stlouis',      name:'Saint Louis',     shortName:'St. Louis',   seed:9,  region:'Midwest', conf:'Atlantic 10',  color:'#003DA5', emoji:'🔵', record:'28-5',  ats:'18-15', offEff:120.2, defEff:100.8, tempo:74.6, sos:14.2, ppg:84.2, oppg:76.4, efgPct:56.2, tovPct:14.2, orbPct:33.6, ftr:40.4, threePct:38.6, ftPct:73.6, last10:'8-2',  neutralRec:'3-2', dataSource:'mock' },
   { id:'iowa',         name:'Iowa',            shortName:'Iowa',        seed:9,  region:'South',   conf:'Big Ten',      color:'#FFCD00', emoji:'🟡', record:'22-11', ats:'14-19', offEff:110.4, defEff:97.4,  tempo:71.2, sos:12.0, ppg:74.8, oppg:69.2, efgPct:51.4, tovPct:15.8, orbPct:31.6, ftr:39.0, threePct:35.2, ftPct:71.8, last10:'5-5',  neutralRec:'2-3', dataSource:'mock' },
 
   // ── SEED 10 ─────────────────────────────────────────────────
   { id:'ucf',          name:'UCF',             shortName:'UCF',         seed:10, region:'East',    conf:'Big 12',       color:'#000000', emoji:'⚫', record:'22-11', ats:'15-18', offEff:111.2, defEff:96.4,  tempo:71.0, sos:11.4, ppg:75.6, oppg:68.8, efgPct:51.8, tovPct:15.2, orbPct:31.2, ftr:38.4, threePct:35.0, ftPct:72.2, last10:'6-4',  neutralRec:'2-3', dataSource:'mock' },
   { id:'missouri',     name:'Missouri',        shortName:'Missouri',    seed:10, region:'West',    conf:'SEC',          color:'#F1B82D', emoji:'🐯', record:'20-12', ats:'13-19', offEff:110.8, defEff:96.8,  tempo:70.2, sos:10.4, ppg:73.8, oppg:68.2, efgPct:50.8, tovPct:15.6, orbPct:30.4, ftr:37.2, threePct:34.6, ftPct:71.6, last10:'5-5',  neutralRec:'2-3', dataSource:'mock' },
-  { id:'santaclara',   name:'Santa Clara',     shortName:'Santa Clara', seed:10, region:'Midwest', conf:'WCC',          color:'#862633', emoji:'🔴', record:'26-8',  ats:'18-15', offEff:111.0, defEff:97.0,  tempo:69.0, sos:16.4, ppg:75.0, oppg:68.2, efgPct:51.4, tovPct:14.8, orbPct:30.6, ftr:38.0, threePct:35.6, ftPct:73.4, last10:'7-3',  neutralRec:'3-2', dataSource:'mock' },
+  { id:'santaclara',   name:'Santa Clara',     shortName:'Santa Clara', seed:10, region:'Midwest', conf:'WCC',          color:'#862633', emoji:'🔴', record:'26-8',  ats:'18-15', offEff:118.6, defEff:100.2, tempo:69.0, sos:16.4, ppg:78.4, oppg:71.6, efgPct:54.4, tovPct:14.8, orbPct:30.6, ftr:38.0, threePct:37.2, ftPct:73.4, last10:'7-3',  neutralRec:'3-2', dataSource:'mock' },
   { id:'texasam',      name:'Texas A&M',       shortName:'Texas A&M',   seed:10, region:'South',   conf:'SEC',          color:'#500000', emoji:'🟤', record:'21-11', ats:'14-18', offEff:110.6, defEff:97.4,  tempo:70.4, sos:12.0, ppg:74.8, oppg:68.6, efgPct:51.2, tovPct:15.4, orbPct:31.0, ftr:38.6, threePct:34.2, ftPct:72.0, last10:'6-4',  neutralRec:'2-3', dataSource:'mock' },
 
   // ── SEED 11 (includes First Four) ───────────────────────────
@@ -82,13 +82,13 @@ export const MOCK_TEAMS: Team[] = [
   // ── SEED 12 ─────────────────────────────────────────────────
   { id:'northerniowa', name:'Northern Iowa',   shortName:'N. Iowa',     seed:12, region:'East',    conf:'MVC',          color:'#4B116F', emoji:'🟣', record:'23-12', ats:'19-15', offEff:106.6, defEff:101.8, tempo:67.6, sos:22.8, ppg:72.2, oppg:70.2, efgPct:50.2, tovPct:14.8, orbPct:29.6, ftr:36.8, threePct:34.4, ftPct:73.2, last10:'5-5',  neutralRec:'2-3', dataSource:'mock' },
   { id:'highpoint',    name:'High Point',      shortName:'High Point',  seed:12, region:'West',    conf:'Big South',    color:'#5B2782', emoji:'🟣', record:'30-4',  ats:'15-16', offEff:108.2, defEff:100.4, tempo:71.0, sos:22.8, ppg:74.8, oppg:70.4, efgPct:51.4, tovPct:15.2, orbPct:30.8, ftr:38.4, threePct:35.6, ftPct:72.8, last10:'8-2',  neutralRec:'3-2', dataSource:'mock' },
-  { id:'akron',        name:'Akron',           shortName:'Akron',       seed:12, region:'Midwest', conf:'MAC',          color:'#041E42', emoji:'🔵', record:'29-5',  ats:'18-16', offEff:108.6, defEff:100.8, tempo:70.6, sos:21.4, ppg:74.6, oppg:70.2, efgPct:51.6, tovPct:14.8, orbPct:31.2, ftr:38.6, threePct:35.2, ftPct:73.0, last10:'7-3',  neutralRec:'3-2', dataSource:'mock' },
+  { id:'akron',        name:'Akron',           shortName:'Akron',       seed:12, region:'Midwest', conf:'MAC',          color:'#041E42', emoji:'🔵', record:'29-5',  ats:'18-16', offEff:115.4, defEff:103.2, tempo:72.8, sos:21.4, ppg:78.8, oppg:73.4, efgPct:53.8, tovPct:14.8, orbPct:31.2, ftr:38.6, threePct:37.4, ftPct:73.0, last10:'7-3',  neutralRec:'3-2', dataSource:'mock' },
   { id:'mcneese',      name:'McNeese',         shortName:'McNeese',     seed:12, region:'South',   conf:'Southland',    color:'#005A9C', emoji:'🔵', record:'28-5',  ats:'18-15', offEff:109.6, defEff:100.2, tempo:70.2, sos:21.6, ppg:75.4, oppg:70.2, efgPct:51.8, tovPct:15.0, orbPct:31.4, ftr:39.0, threePct:35.8, ftPct:73.6, last10:'8-2',  neutralRec:'3-2', dataSource:'mock' },
 
   // ── SEED 13 ─────────────────────────────────────────────────
   { id:'calbaptist',   name:'Cal Baptist',     shortName:'Cal Baptist', seed:13, region:'East',    conf:'WAC',          color:'#002868', emoji:'🔵', record:'25-8',  ats:'16-17', offEff:105.8, defEff:103.2, tempo:69.8, sos:24.6, ppg:71.4, oppg:70.6, efgPct:49.8, tovPct:15.8, orbPct:29.2, ftr:36.6, threePct:34.6, ftPct:72.6, last10:'6-4',  neutralRec:'2-3', dataSource:'mock' },
   { id:'hawaii',       name:'Hawaii',          shortName:'Hawaii',      seed:13, region:'West',    conf:'Big West',     color:'#024731', emoji:'🌺', record:'24-8',  ats:'16-16', offEff:107.8, defEff:101.0, tempo:70.4, sos:20.6, ppg:73.6, oppg:70.0, efgPct:51.0, tovPct:15.2, orbPct:30.6, ftr:37.8, threePct:35.8, ftPct:72.6, last10:'7-3',  neutralRec:'3-2', dataSource:'mock' },
-  { id:'hofstra',      name:'Hofstra',         shortName:'Hofstra',     seed:13, region:'Midwest', conf:'CAA',          color:'#00539B', emoji:'🔵', record:'24-10', ats:'15-19', offEff:107.2, defEff:101.4, tempo:70.2, sos:22.4, ppg:73.0, oppg:70.4, efgPct:50.6, tovPct:15.6, orbPct:30.2, ftr:37.2, threePct:35.0, ftPct:72.4, last10:'6-4',  neutralRec:'2-3', dataSource:'mock' },
+  { id:'hofstra',      name:'Hofstra',         shortName:'Hofstra',     seed:13, region:'Midwest', conf:'CAA',          color:'#00539B', emoji:'🔵', record:'24-10', ats:'15-19', offEff:107.2, defEff:107.8, tempo:70.2, sos:22.4, ppg:76.4, oppg:82.2, efgPct:50.6, tovPct:15.6, orbPct:30.2, ftr:37.2, threePct:35.0, ftPct:72.4, last10:'6-4',  neutralRec:'2-3', dataSource:'mock' },
   { id:'troy',         name:'Troy',            shortName:'Troy',        seed:13, region:'South',   conf:'Sun Belt',     color:'#8B2332', emoji:'🔴', record:'22-11', ats:'17-14', offEff:106.4, defEff:102.0, tempo:70.0, sos:23.8, ppg:72.0, oppg:70.4, efgPct:50.0, tovPct:15.6, orbPct:29.8, ftr:37.2, threePct:34.2, ftPct:72.0, last10:'5-5',  neutralRec:'2-3', dataSource:'mock' },
 
   // ── SEED 14 ─────────────────────────────────────────────────
@@ -190,9 +190,9 @@ export const MOCK_BETTING_LINES: Record<string, BettingLine> = {
   // 5 St. John's -11.5 vs 12 Northern Iowa | Total 131.5
   // (VegasInsider: opened -9.5 at some books, SuperBook opened -11; total opened 132.5, now 131.5)
   'northerniowa-stjohns': {
-    spread: -11.5, spreadFav: 'stjohns', ml_a: 575, ml_b: -580,
-    total: 131.5, source: 'FanDuel', updated: '3/21 7:25 PM',
-    openSpread: -9.5, openTotal: 132.5,
+    spread: -9.5, spreadFav: 'stjohns', ml_a: 380, ml_b: -480,
+    total: 131.5, source: 'DraftKings', updated: '3/21 7:25 PM',
+    openSpread: -9.5, openTotal: 131.5,
   },
 
   // 6 Louisville -6.5 vs 11 South Florida | Total ~141
@@ -223,8 +223,8 @@ export const MOCK_BETTING_LINES: Record<string, BettingLine> = {
   // 1 Arizona -29.5 vs 16 LIU | Total ~148 (Yahoo confirmed -29.5)
   'arizona-liu': {
     spread: -29.5, spreadFav: 'arizona', ml_a: -8000, ml_b: 2800,
-    total: 148.0, source: 'FanDuel', updated: '3/20 12:40 PM',
-    openSpread: -29.5, openTotal: 148.0,
+    total: 150.5, source: 'FanDuel', updated: '3/20 12:40 PM',
+    openSpread: -29.5, openTotal: 150.5,
   },
 
   // 2 Purdue -24.5 vs 15 Queens | Total ~148 (Yahoo confirmed -24.5)
@@ -322,9 +322,9 @@ export const MOCK_BETTING_LINES: Record<string, BettingLine> = {
 
   // 5 Texas Tech -8.5 vs 12 Akron | Total ~141 (CBS confirmed -8.5)
   'akron-texastech': {
-    spread: -8.5, spreadFav: 'texastech', ml_a: 360, ml_b: -470,
-    total: 141.5, source: 'FanDuel', updated: '3/20 3:25 PM',
-    openSpread: -8.5, openTotal: 141.5,
+    spread: -7.5, spreadFav: 'texastech', ml_a: 260, ml_b: -325,
+    total: 156.5, source: 'DraftKings', updated: '3/20 3:25 PM',
+    openSpread: -7.5, openTotal: 156.5,
   },
 
   // 6 Tennessee vs 11 SMU (First Four winner)
@@ -342,9 +342,9 @@ export const MOCK_BETTING_LINES: Record<string, BettingLine> = {
   // 7 Kentucky -2.5 vs 10 Santa Clara | Total 161.5
   // (CBS confirmed -3.5; ESPN/Yahoo -2.5; going with -2.5 per majority)
   'kentucky-santaclara': {
-    spread: -2.5, spreadFav: 'kentucky', ml_a: -138, ml_b: 115,
-    total: 161.5, source: 'DraftKings', updated: '3/21 7:10 PM',
-    openSpread: -2.5, openTotal: 161.5,
+    spread: -3.5, spreadFav: 'kentucky', ml_a: -166, ml_b: 140,
+    total: 160.5, source: 'DraftKings', updated: '3/21 7:10 PM',
+    openSpread: -3.5, openTotal: 160.5,
   },
 
   // 8 Georgia -1.5 vs 9 Saint Louis | Total 169.5 (ESPN confirmed -2.5/total 169.5)
@@ -378,9 +378,9 @@ export const MOCK_BETTING_LINES: Record<string, BettingLine> = {
 
   // 3 Illinois -24.5 vs 14 Penn | Total 150.5 (ESPN confirmed -24.5 / total 150.5)
   'illinois-penn': {
-    spread: -24.5, spreadFav: 'illinois', ml_a: 2000, ml_b: -6500,
+    spread: -21.5, spreadFav: 'illinois', ml_a: 1400, ml_b: -3000,
     total: 150.5, source: 'DraftKings', updated: '3/21 2:45 PM',
-    openSpread: -24.5, openTotal: 149.0,
+    openSpread: -21.5, openTotal: 149.0,
   },
 
   // 4 Nebraska -13.5 vs 13 Troy | Total 137.5
