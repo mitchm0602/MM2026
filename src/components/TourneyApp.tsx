@@ -391,7 +391,10 @@ function EdgeTab({ a }: { a: MatchupAnalysis }) {
 }
 
 // ─── Settings Page ────────────────────────────────────────────
-function SettingsPage() {
+function SettingsPage({ dataMode, setDataMode }: {
+  dataMode: 'mock' | 'live';
+  setDataMode: (m: 'mock' | 'live') => void;
+}) {
   const [weights, setWeights]     = useState({ form:35, matchup:30, sos:20, recent:15 });
   const [toggles, setToggles]     = useState({ narrative:true, cache:true, kenpom:true, espn:true, draftkings:true, public:false, injuries:true });
   const [oddsFormat, setOddsFormat] = useState('american');
@@ -420,14 +423,43 @@ function SettingsPage() {
           <span style={{ fontSize:11, color:'var(--green)' }}><span className="status-dot" />active</span>
         </div>
         <div className="setting-row">
-          <div style={{ fontSize:14, color:'var(--text2)' }}>Data Mode</div>
-          <select style={{ background:'var(--bg3)', border:'1px solid var(--border)', color:'var(--text)',
-            borderRadius:6, padding:'6px 10px', fontFamily:'var(--font-sans)', fontSize:13 }}
-            defaultValue="mock">
+          <div>
+            <div style={{ fontSize:14, color:'var(--text2)' }}>Data Mode</div>
+            <div style={{ fontSize:11, color:'var(--text3)', marginTop:2 }}>
+              {dataMode === 'live'
+                ? 'Fetching live lines from The Odds API'
+                : 'Using verified mock lines — set DATA_MODE=live in Vercel to enable'}
+            </div>
+          </div>
+          <select
+            style={{ background:'var(--bg3)', border:'1px solid var(--border)', color:'var(--text)',
+              borderRadius:6, padding:'6px 10px', fontFamily:'var(--font-sans)', fontSize:13 }}
+            value={dataMode}
+            onChange={e => {
+              const val = e.target.value as 'mock' | 'live';
+              setDataMode(val);
+              try { localStorage.setItem('tourney_data_mode', val); } catch {}
+            }}>
             <option value="mock">Mock (demo)</option>
             <option value="live">Live (real APIs)</option>
           </select>
         </div>
+        {dataMode === 'live' && (
+          <div style={{ marginTop:8, padding:'10px 12px', background:'rgba(34,201,122,0.08)',
+            border:'1px solid rgba(34,201,122,0.25)', borderRadius:'var(--radius)', fontSize:12,
+            color:'var(--green)' }}>
+            🟢 Live mode active — lines refresh every 5 min from DraftKings.
+            Make sure <strong>ODDS_API_KEY</strong> and <strong>DATA_MODE=live</strong> are set in Vercel.
+          </div>
+        )}
+        {dataMode === 'mock' && (
+          <div style={{ marginTop:8, padding:'10px 12px', background:'rgba(255,179,64,0.08)',
+            border:'1px solid rgba(255,179,64,0.25)', borderRadius:'var(--radius)', fontSize:12,
+            color:'var(--amber)' }}>
+            ⚠️ Mock mode — showing verified lines from March 17, 2026.
+            Switch to Live to get real-time spreads and totals.
+          </div>
+        )}
       </div>
 
       <div className="setting-group">
@@ -970,6 +1002,14 @@ export default function TourneyApp() {
   ]);
   const [dataMode, setDataMode] = useState<'mock' | 'live'>('mock');
 
+  // ── Restore persisted dataMode from localStorage ────────────────
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('tourney_data_mode') as 'mock' | 'live' | null;
+      if (saved === 'live' || saved === 'mock') setDataMode(saved);
+    } catch {}
+  }, []);
+
   // ── Load teams on mount — always start from MOCK_TEAMS (all 68),
   //    then upgrade to KenPom-enriched data if /api/teams returns the full field
   useEffect(() => {
@@ -1289,7 +1329,7 @@ export default function TourneyApp() {
 
       {page === 'history'  && <HistoryPage history={history} />}
       {page === 'edge'     && <TourneyBoard teams={teams} onLoadMatchup={loadMatchup} />}
-      {page === 'settings' && <SettingsPage />}
+      {page === 'settings' && <SettingsPage dataMode={dataMode} setDataMode={setDataMode} />}
     </div>
   );
 }
