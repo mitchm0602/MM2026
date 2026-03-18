@@ -1903,7 +1903,7 @@ function TourneyBoard({ teams, onLoadMatchup }: {
 
 // ─── Main App ─────────────────────────────────────────────────
 export default function TourneyApp() {
-  const [page,      setPage]      = useState<Page>('compare');
+  const [page,      setPage]      = useState<Page>('edge');
   const [tab,       setTab]       = useState<Tab>('ai');
   const [teams,     setTeams]     = useState<Team[]>(MOCK_TEAMS);
   const [teamA,     setTeamA]     = useState<Team | null>(null);
@@ -2075,29 +2075,68 @@ export default function TourneyApp() {
   //  RENDER
   // ─────────────────────────────────────────────────────────────
   return (
-    <div style={{ maxWidth:1400, margin:'0 auto', padding:'0 20px 60px' }}>
+    <div style={{ maxWidth:1400, margin:'0 auto', padding:'0 20px 100px' }}>
 
-      {/* Nav */}
-      <nav className="nav">
+      {/* ── TOP BAR — stays lean so it fits any screen width ── */}
+      <nav className="nav" style={{ justifyContent:'space-between' }}>
         <div className="nav-logo">
           <div className="logo-icon">🏀</div>
-          <span>TourneyEdge <span style={{ fontSize:11, color:'var(--text3)', fontFamily:'var(--font-sans)' }}>AI</span></span>
-        </div>
-        <div className="nav-links">
-          {([['compare','Compare'],['history','Saved Picks'],['edge','Board 🏆'],['settings','Settings']] as [Page,string][]).map(([p, label]) => (
-            <button key={p} className={`nav-link${page === p ? ' active' : ''}`} onClick={() => setPage(p)}>{label}</button>
-          ))}
+          <span>TourneyEdge
+            <span style={{ fontSize:11, color:'var(--text3)', fontFamily:'var(--font-sans)', marginLeft:4 }}>AI</span>
+          </span>
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:8 }}>
           {dataMode === 'mock' && (
             <span style={{ fontSize:11, background:'rgba(255,179,64,0.15)', color:'var(--amber)',
-              padding:'3px 8px', borderRadius:20, border:'1px solid rgba(255,179,64,0.3)' }}>
-              Demo data
+              padding:'3px 8px', borderRadius:20, border:'1px solid rgba(255,179,64,0.3)',
+              whiteSpace:'nowrap' }}>
+              Demo
             </span>
           )}
-          <span style={{ fontSize:11, color:'var(--text3)' }}>Not financial advice</span>
+          <span style={{ fontSize:11, color:'var(--text3)', whiteSpace:'nowrap',
+            display:'none' }} className="desktop-only">
+            Not financial advice
+          </span>
         </div>
       </nav>
+
+      {/* ── BOTTOM TAB BAR — fixed to bottom, works in portrait on iPhone ── */}
+      <div style={{
+        position:'fixed', bottom:0, left:0, right:0, zIndex:100,
+        background:'var(--bg2)',
+        borderTop:'1px solid var(--border)',
+        display:'flex',
+        paddingBottom:'env(safe-area-inset-bottom, 0px)',
+      }}>
+        {([
+          ['edge',     '🏆', 'Board'  ],
+          ['compare',  '🔍', 'Compare'],
+          ['history',  '📁', 'Picks'  ],
+          ['settings', '⚙️', 'Settings'],
+        ] as [Page, string, string][]).map(([p, icon, label]) => (
+          <button key={p}
+            onClick={() => setPage(p)}
+            style={{
+              flex: 1,
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              padding: '10px 4px 8px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 3,
+              color: page === p ? 'var(--accent)' : 'var(--text3)',
+              borderTop: page === p ? '2px solid var(--accent)' : '2px solid transparent',
+              transition: 'color 0.15s',
+            }}>
+            <span style={{ fontSize: 20, lineHeight: 1 }}>{icon}</span>
+            <span style={{ fontSize: 10, fontWeight: page === p ? 700 : 400, letterSpacing: 0.3 }}>
+              {label}
+            </span>
+          </button>
+        ))}
+      </div>
 
       {/* Disclaimer */}
       <div className="disclaimer">
@@ -2108,6 +2147,21 @@ export default function TourneyApp() {
       {/* ── COMPARE PAGE ── */}
       {page === 'compare' && (
         <>
+          {/* Back to Board button — shown when an analysis is active */}
+          {analysis && (
+            <button
+              onClick={() => setPage('edge')}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                background: 'none', border: 'none', cursor: 'pointer',
+                color: 'var(--text2)', fontSize: 13, fontWeight: 600,
+                padding: '8px 0 16px', marginBottom: 0,
+              }}>
+              <span style={{ fontSize: 16 }}>←</span>
+              Back to Board
+            </button>
+          )}
+
           {/* Team Selector */}
           <div className="selector-card">
             <div className="selector-title">Select Matchup</div>
