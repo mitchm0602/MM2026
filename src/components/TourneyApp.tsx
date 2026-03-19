@@ -1599,9 +1599,20 @@ function TourneyBoard({ teams, onLoadMatchup }: {
           valueScore:'Value Score', spreadEdge:'Spread Edge', totalEdge:'O/U Edge',
           confidence:'Confidence', sharpScore:'Sharp Money', upsetScore:'Upset Risk',
         };
+        // Parse "12:15 PM" / "9:45 PM" / "TBD" into minutes since midnight for sorting
+        const parseTipTime = (t: string): number => {
+          if (t === 'TBD') return 9999;
+          const [time, ampm] = t.split(' ');
+          const [h, m] = time.split(':').map(Number);
+          const hours = ampm === 'PM' && h !== 12 ? h + 12 : ampm === 'AM' && h === 12 ? 0 : h;
+          return hours * 60 + m;
+        };
+
         return (
           <div style={{ marginTop:24 }}>
-            {Object.entries(byDate).sort(([a],[b]) => a.localeCompare(b)).map(([date, dayRows]) => (
+            {Object.entries(byDate).sort(([a],[b]) => a.localeCompare(b)).map(([date, dayRows]) => {
+              const timeOrdered = [...dayRows].sort((a, b) => parseTipTime(a.time) - parseTipTime(b.time));
+              return (
               <div key={date} style={{ marginBottom:40 }}>
                 {/* Day header */}
                 <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:14 }}>
@@ -1616,9 +1627,9 @@ function TourneyBoard({ teams, onLoadMatchup }: {
                   </div>
                 </div>
 
-                {/* Game cards for this day */}
+                {/* Game cards for this day — sorted by tip time */}
                 <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(320px, 1fr))', gap:12 }}>
-                  {dayRows.map(r => {
+                  {timeOrdered.map(r => {
                     const res = results[r.matchupKey];
                     return (
                       <div key={r.matchupKey}
@@ -1765,7 +1776,8 @@ function TourneyBoard({ teams, onLoadMatchup }: {
                   })}
                 </div>
               </div>
-            ))}
+            );
+          })}
           </div>
         );
       })()}
