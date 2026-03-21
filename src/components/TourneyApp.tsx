@@ -724,7 +724,7 @@ function calcSharpSignal(line: BettingLine, spreadEdge: number, totalEdge: numbe
     emoji,
   };
 }
-type DateFilter = 'all' | '3/17' | '3/18' | '3/19' | '3/20' | '3/21' | '3/22';
+type DateFilter = 'all' | '3/21' | '3/22';
 
 // ── Value Score (1-100) ──────────────────────────────────────────
 // Single composite number that weights spread edge, total edge,
@@ -901,75 +901,33 @@ function calcUpsetAlert(
   };
 }
 
-// Every first-round matchup with verified tip times from Yahoo Sports (March 16, 2026)
-// 3/21 and 3/22 are Second Round — matchups TBD after first-round results
-// We show projected likely matchups for 3/21-3/22 but label them as projections
+// Second Round matchups — verified from NCAA.com, CBS Sports, NBC Sports, On3 (March 21, 2026)
+// Saturday March 21 tip times confirmed. Sunday March 22 tip times TBD (announced after Saturday).
+// First-round upsets incorporated: TCU d. Ohio St, VCU d. N Carolina, High Point d. Wisconsin,
+// Saint Louis d. Georgia, Texas A&M d. Saint Mary's, Utah State d. Villanova, Texas d. NC State.
 const TOURNAMENT_SCHEDULE: {
   date: string; day: string; time: string; tv: string;
   region: string; tAId: string; tBId: string; isProjected?: boolean;
 }[] = [
-  // ── FIRST FOUR (already played) ──────────────────────────
-  { date:'3/17', day:'Tuesday',  time:'6:40 PM',  tv:'TruTV', region:'Midwest', tAId:'umbc',        tBId:'howard'        },
-  { date:'3/17', day:'Tuesday',  time:'9:10 PM',  tv:'TruTV', region:'West',    tAId:'ncstate',     tBId:'texas'         },
-  { date:'3/18', day:'Wednesday',time:'6:40 PM',  tv:'TruTV', region:'South',   tAId:'prairierview',tBId:'lehigh'        },
-  { date:'3/18', day:'Wednesday',time:'9:10 PM',  tv:'TruTV', region:'Midwest', tAId:'miamioh',     tBId:'smu'           },
+  // ── SATURDAY MARCH 21 — Second Round (tip times confirmed) ──
+  { date:'3/21', day:'Saturday', time:'12:10 PM', tv:'CBS',   region:'Midwest', tAId:'michigan',    tBId:'stlouis'    },
+  { date:'3/21', day:'Saturday', time:'2:45 PM',  tv:'CBS',   region:'East',    tAId:'michiganst',  tBId:'louisville' },
+  { date:'3/21', day:'Saturday', time:'5:15 PM',  tv:'CBS',   region:'East',    tAId:'duke',        tBId:'tcu'        },
+  { date:'3/21', day:'Saturday', time:'6:10 PM',  tv:'TNT',   region:'South',   tAId:'houston',     tBId:'texasam'    },
+  { date:'3/21', day:'Saturday', time:'7:10 PM',  tv:'TBS',   region:'West',    tAId:'gonzaga',     tBId:'texas'      },
+  { date:'3/21', day:'Saturday', time:'7:50 PM',  tv:'CBS',   region:'South',   tAId:'illinois',    tBId:'vcu'        },
+  { date:'3/21', day:'Saturday', time:'8:45 PM',  tv:'TNT',   region:'South',   tAId:'nebraska',    tBId:'vanderbilt' },
+  { date:'3/21', day:'Saturday', time:'9:45 PM',  tv:'TBS',   region:'West',    tAId:'arkansas',    tBId:'highpoint'  },
 
-  // ── THURSDAY MARCH 19 — First Round ──────────────────────
-  { date:'3/19', day:'Thursday', time:'12:15 PM', tv:'CBS',   region:'East',    tAId:'ohiostate',   tBId:'tcu'           },
-  { date:'3/19', day:'Thursday', time:'12:40 PM', tv:'TruTV', region:'South',   tAId:'nebraska',    tBId:'troy'          },
-  { date:'3/19', day:'Thursday', time:'1:30 PM',  tv:'TNT',   region:'East',    tAId:'louisville',  tBId:'southflorida'  },
-  { date:'3/19', day:'Thursday', time:'1:50 PM',  tv:'TBS',   region:'West',    tAId:'highpoint',   tBId:'wisconsin'     },
-  { date:'3/19', day:'Thursday', time:'2:50 PM',  tv:'CBS',   region:'East',    tAId:'duke',        tBId:'siena'         },
-  { date:'3/19', day:'Thursday', time:'3:15 PM',  tv:'TruTV', region:'South',   tAId:'mcneese',     tBId:'vanderbilt'    },
-  { date:'3/19', day:'Thursday', time:'4:05 PM',  tv:'TNT',   region:'East',    tAId:'michiganst',  tBId:'northdakotast' },
-  { date:'3/19', day:'Thursday', time:'4:25 PM',  tv:'TBS',   region:'West',    tAId:'arkansas',    tBId:'hawaii'        },
-  { date:'3/19', day:'Thursday', time:'6:50 PM',  tv:'TNT',   region:'South',   tAId:'northcarolina',tBId:'vcu'          },
-  { date:'3/19', day:'Thursday', time:'7:10 PM',  tv:'CBS',   region:'Midwest', tAId:'michigan',    tBId:'umbc'          },
-  { date:'3/19', day:'Thursday', time:'7:25 PM',  tv:'TBS',   region:'West',    tAId:'byu',         tBId:'texas'         },
-  { date:'3/19', day:'Thursday', time:'7:35 PM',  tv:'TruTV', region:'South',   tAId:'saintmarys',  tBId:'texasam'       },
-  { date:'3/19', day:'Thursday', time:'9:25 PM',  tv:'TNT',   region:'South',   tAId:'illinois',    tBId:'penn'          },
-  { date:'3/19', day:'Thursday', time:'9:45 PM',  tv:'CBS',   region:'Midwest', tAId:'georgia',     tBId:'stlouis'       },
-  { date:'3/19', day:'Thursday', time:'10:00 PM', tv:'TBS',   region:'West',    tAId:'gonzaga',     tBId:'kennesawst'    },
-  { date:'3/19', day:'Thursday', time:'10:10 PM', tv:'TruTV', region:'South',   tAId:'houston',     tBId:'idaho'         },
-
-  // ── FRIDAY MARCH 20 — First Round ────────────────────────
-  { date:'3/20', day:'Friday',   time:'12:15 PM', tv:'CBS',   region:'Midwest', tAId:'kentucky',    tBId:'santaclara'    },
-  { date:'3/20', day:'Friday',   time:'12:40 PM', tv:'TruTV', region:'Midwest', tAId:'texastech',   tBId:'akron'         },
-  { date:'3/20', day:'Friday',   time:'1:35 PM',  tv:'TNT',   region:'West',    tAId:'arizona',     tBId:'liu'           },
-  { date:'3/20', day:'Friday',   time:'1:50 PM',  tv:'TBS',   region:'Midwest', tAId:'virginia',    tBId:'wrightstate'   },
-  { date:'3/20', day:'Friday',   time:'2:50 PM',  tv:'CBS',   region:'Midwest', tAId:'iowast',      tBId:'tennesseest'   },
-  { date:'3/20', day:'Friday',   time:'3:15 PM',  tv:'TruTV', region:'Midwest', tAId:'alabama',     tBId:'hofstra'       },
-  { date:'3/20', day:'Friday',   time:'4:10 PM',  tv:'TNT',   region:'West',    tAId:'villanova',   tBId:'utahst'        },
-  { date:'3/20', day:'Friday',   time:'4:25 PM',  tv:'TBS',   region:'Midwest', tAId:'tennessee',   tBId:'smu'           },
-  { date:'3/20', day:'Friday',   time:'6:50 PM',  tv:'TNT',   region:'South',   tAId:'clemson',     tBId:'iowa'          },
-  { date:'3/20', day:'Friday',   time:'7:10 PM',  tv:'CBS',   region:'East',    tAId:'northerniowa',tBId:'stjohns'       },
-  { date:'3/20', day:'Friday',   time:'7:25 PM',  tv:'TBS',   region:'East',    tAId:'ucf',         tBId:'ucla'          },
-  { date:'3/20', day:'Friday',   time:'7:35 PM',  tv:'TruTV', region:'West',    tAId:'purdue',      tBId:'queens'        },
-  { date:'3/20', day:'Friday',   time:'9:25 PM',  tv:'TNT',   region:'South',   tAId:'florida',     tBId:'prairierview'  },
-  { date:'3/20', day:'Friday',   time:'9:45 PM',  tv:'CBS',   region:'East',    tAId:'calbaptist',  tBId:'kansas'        },
-  { date:'3/20', day:'Friday',   time:'10:00 PM', tv:'TBS',   region:'East',    tAId:'furman',      tBId:'uconn'         },
-  { date:'3/20', day:'Friday',   time:'10:10 PM', tv:'TruTV', region:'West',    tAId:'miamifl',     tBId:'missouri'      },
-
-  // ── SATURDAY MARCH 21 — Second Round (matchups TBD) ──────
-  // These are projected likely matchups based on seedings — labeled as projections
-  { date:'3/21', day:'Saturday', time:'TBD', tv:'TBD', region:'East',    tAId:'duke',      tBId:'uconn',     isProjected:true },
-  { date:'3/21', day:'Saturday', time:'TBD', tv:'TBD', region:'East',    tAId:'michiganst',tBId:'kansas',    isProjected:true },
-  { date:'3/21', day:'Saturday', time:'TBD', tv:'TBD', region:'West',    tAId:'arizona',   tBId:'gonzaga',   isProjected:true },
-  { date:'3/21', day:'Saturday', time:'TBD', tv:'TBD', region:'West',    tAId:'purdue',    tBId:'arkansas',  isProjected:true },
-  { date:'3/21', day:'Saturday', time:'TBD', tv:'TBD', region:'South',   tAId:'florida',   tBId:'nebraska',  isProjected:true },
-  { date:'3/21', day:'Saturday', time:'TBD', tv:'TBD', region:'South',   tAId:'houston',   tBId:'vanderbilt',isProjected:true },
-  { date:'3/21', day:'Saturday', time:'TBD', tv:'TBD', region:'Midwest', tAId:'michigan',  tBId:'iowast',    isProjected:true },
-  { date:'3/21', day:'Saturday', time:'TBD', tv:'TBD', region:'Midwest', tAId:'virginia',  tBId:'alabama',   isProjected:true },
-
-  // ── SUNDAY MARCH 22 — Second Round (matchups TBD) ────────
-  { date:'3/22', day:'Sunday',   time:'TBD', tv:'TBD', region:'East',    tAId:'louisville',tBId:'stjohns',   isProjected:true },
-  { date:'3/22', day:'Sunday',   time:'TBD', tv:'TBD', region:'East',    tAId:'ohiostate', tBId:'ucla',      isProjected:true },
-  { date:'3/22', day:'Sunday',   time:'TBD', tv:'TBD', region:'West',    tAId:'wisconsin', tBId:'byu',       isProjected:true },
-  { date:'3/22', day:'Sunday',   time:'TBD', tv:'TBD', region:'West',    tAId:'miamifl',   tBId:'utahst',    isProjected:true },
-  { date:'3/22', day:'Sunday',   time:'TBD', tv:'TBD', region:'South',   tAId:'illinois',  tBId:'northcarolina',isProjected:true },
-  { date:'3/22', day:'Sunday',   time:'TBD', tv:'TBD', region:'South',   tAId:'saintmarys',tBId:'clemson',   isProjected:true },
-  { date:'3/22', day:'Sunday',   time:'TBD', tv:'TBD', region:'Midwest', tAId:'tennessee', tBId:'georgia',   isProjected:true },
-  { date:'3/22', day:'Sunday',   time:'TBD', tv:'TBD', region:'Midwest', tAId:'kentucky',  tBId:'texastech', isProjected:true },
+  // ── SUNDAY MARCH 22 — Second Round (tip times TBD after Saturday results) ──
+  { date:'3/22', day:'Sunday', time:'TBD', tv:'CBS',   region:'West',    tAId:'purdue',   tBId:'miamifl',   isProjected:true },
+  { date:'3/22', day:'Sunday', time:'TBD', tv:'CBS',   region:'Midwest', tAId:'iowast',   tBId:'kentucky',  isProjected:true },
+  { date:'3/22', day:'Sunday', time:'TBD', tv:'CBS',   region:'East',    tAId:'kansas',   tBId:'stjohns',   isProjected:true },
+  { date:'3/22', day:'Sunday', time:'TBD', tv:'TNT',   region:'Midwest', tAId:'virginia', tBId:'tennessee', isProjected:true },
+  { date:'3/22', day:'Sunday', time:'TBD', tv:'TBS',   region:'South',   tAId:'florida',  tBId:'iowa',      isProjected:true },
+  { date:'3/22', day:'Sunday', time:'TBD', tv:'TBD',   region:'West',    tAId:'arizona',  tBId:'utahst',    isProjected:true },
+  { date:'3/22', day:'Sunday', time:'TBD', tv:'TBD',   region:'Midwest', tAId:'alabama',  tBId:'texastech', isProjected:true },
+  { date:'3/22', day:'Sunday', time:'TBD', tv:'TBD',   region:'East',    tAId:'uconn',    tBId:'ucla',      isProjected:true },
 ];
 
 function TourneyBoard({ teams, onLoadMatchup }: {
@@ -1077,7 +1035,7 @@ function TourneyBoard({ teams, onLoadMatchup }: {
     });
   }, [rows, sortKey, showOnlyEdge, showOnlySharp, showOnlyUpset]);
 
-  const dates   = ['all', '3/17', '3/18', '3/19', '3/20', '3/21', '3/22'];
+  const dates   = ['all', '3/21', '3/22'];
   const regions = ['all', 'East', 'West', 'Midwest', 'South'];
 
   const edgeColor = (v: number, threshold = 3) =>
@@ -1101,7 +1059,7 @@ function TourneyBoard({ teams, onLoadMatchup }: {
           🏆 Tournament Board
         </div>
         <div style={{ fontSize:13, color:'var(--text3)' }}>
-          Every first-round matchup ranked by model edge — find the best bets across all four days
+          Second Round · March 21 & 22 · Sweet 16 spots on the line
         </div>
       </div>
 
@@ -1578,12 +1536,8 @@ function TourneyBoard({ teams, onLoadMatchup }: {
           byDate[r.date].push(r);
         });
         const dateLabels: Record<string, string> = {
-          '3/17': 'Tuesday March 17 — First Four',
-          '3/18': 'Wednesday March 18 — First Four',
-          '3/19': 'Thursday March 19 — First Round',
-          '3/20': 'Friday March 20 — First Round',
-          '3/21': 'Saturday March 21 — Second Round (Projected)',
-          '3/22': 'Sunday March 22 — Second Round (Projected)',
+          '3/21': 'Saturday March 21 — Second Round',
+          '3/22': 'Sunday March 22 — Second Round',
         };
         const tvColors: Record<string, string> = {
           CBS: '#003087', TBS: '#005288', TNT: '#CC0000', TruTV: '#7B1FA2', TBD: 'var(--text3)',
